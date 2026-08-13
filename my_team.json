@@ -1,0 +1,66 @@
+{
+    "team": [
+      {
+        "name": "리자몽",
+        "nature": "Modest",
+        "types": ["Fire", "Flying"],
+        "moves": [
+          {
+            "name": "화염방사",
+            "power": 90,
+            "category": "special",
+            "type": "Fire"
+          },
+          {
+            "name": "드래곤클로",
+            "power": 80,
+            "category": "physical",
+            "type": "Dragon"
+          },
+          {
+            "name": "에어슬래시",
+            "power": 75,
+            "category": "special",
+            "type": "Flying"
+          },
+          {
+            "name": "날개쉬기",
+            "power": 0,
+            "category": "Status",
+            "type": "Flying"
+          }
+        ]
+      },
+      {
+        "name": "피카츄",
+        "nature": "Jolly",
+        "types": ["Electric"],
+        "moves": [
+          {
+            "name": "10만볼트",
+            "power": 90,
+            "category": "special",
+            "type": "Electric"
+          },
+          {
+            "name": "전광석화",
+            "power": 40,
+            "category": "physical",
+            "type": "Normal"
+          },
+          {
+            "name": "아이언테일",
+            "power": 100,
+            "category": "physical",
+            "type": "Steel"
+          },
+          {
+            "name": "볼트태클",
+            "power": 120,
+            "category": "physical",
+            "type": "Electric"
+          }
+        ]
+      }
+    ]
+  }

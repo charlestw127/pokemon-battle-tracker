@@ -1,0 +1,28 @@
+# --- legacy / superseded code (kept locally, not shipped) ---
+# old CLI stat calculator, replaced by battle_tracker.html
+실수치.py
+# one-time scraper that originally produced pokedex.json
+pokedb_parser.py
+# old OpenCV/OCR screen-capture experiment
+pkm.py
+# inputs only used by the legacy scripts above
+ko.json
+type_effectiveness.json
+
+# --- python ---
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# --- OS / editor noise ---
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+.vscode/
+.idea/
+
+# --- local scratch ---
+_*.html
+*.log

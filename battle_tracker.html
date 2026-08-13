@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>포켓몬 배틀 트래커</title>
+<style>
+  :root{
+    --bg:#0f1216; --panel:#171c23; --card:#1e242e; --card2:#242b37; --line:#2e3743;
+    --text:#e6eaf0; --dim:#8b96a5; --my:#4f8ef7; --opp:#f16a6a; --ok:#4cc38a; --warn:#f0b429;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{height:100%}
+  body{background:var(--bg); color:var(--text); font:13px/1.45 "Segoe UI","Malgun Gothic",sans-serif}
+  button{font:inherit; color:inherit; background:var(--card2); border:1px solid var(--line); border-radius:6px; padding:3px 8px; cursor:pointer}
+  button:hover{border-color:#4a5665}
+  button.primary{background:var(--my); border-color:var(--my); color:#fff}
+  button.danger{color:#ff9d9d}
+  button.on{background:var(--ok); border-color:var(--ok); color:#08120d}
+  input,select{font:inherit; color:var(--text); background:#12161c; border:1px solid var(--line); border-radius:6px; padding:3px 6px}
+  input:focus,select:focus{outline:none; border-color:var(--my)}
+  input[type=number]{width:52px; text-align:center}
+  header{display:flex; align-items:center; gap:14px; padding:8px 14px; background:var(--panel); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:20}
+  header h1{font-size:16px; margin-right:6px}
+  header .grow{flex:1}
+  .seg{display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden}
+  .seg button{border:none; border-radius:0; padding:4px 14px; background:transparent}
+  .seg button.active{background:var(--my); color:#fff}
+  main{display:grid; grid-template-columns:minmax(560px,1fr) 350px; grid-template-rows:minmax(0,1fr) auto; gap:10px; padding:10px; height:calc(100vh - 46px)}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px; overflow-y:auto; max-height:100%}
+  .panel h2{font-size:14px; margin-bottom:8px; display:flex; align-items:center; gap:8px}
+  .panel h2 .count{color:var(--dim); font-weight:normal; font-size:12px}
+  #field-col{grid-column:1; grid-row:1; overflow-y:auto; max-height:100%; display:flex; flex-direction:column; gap:10px}
+  #opp-panel{grid-column:2; grid-row:1}
+  /* tabs: 배틀 view shows field+opponent, 팀 관리 view shows my team full-page */
+  #my-panel{grid-column:1 / -1; grid-row:1 / -1; max-height:none}
+  body[data-view="battle"] #my-panel{display:none}
+  body[data-view="team"] #field-col, body[data-view="team"] #opp-panel{display:none}
+  .teamrow{display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start}
+  #my-panel .card{min-width:280px; max-width:360px; flex:0 0 auto; margin-bottom:0}
+  #my-panel .card.editing{min-width:500px; max-width:none}
+  .itemicon{width:24px; height:24px; vertical-align:middle}
+  button .itemicon{margin-right:3px}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:9px; padding:8px 10px; margin-bottom:8px}
+  .card .head{display:flex; align-items:center; gap:7px; flex-wrap:wrap}
+  .card .head .nm{font-size:14px; font-weight:600}
+  .card .head .form{color:var(--dim); font-size:11px}
+  .row{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:5px}
+  .muted{color:var(--dim)}
+  .small{font-size:11px}
+  .chip{display:inline-block; padding:1px 7px; border-radius:10px; font-size:11px; color:#fff; line-height:1.5}
+  .cat{display:inline-block; padding:0 5px; border-radius:4px; font-size:10px; border:1px solid var(--line); color:var(--dim)}
+  .cat.P{color:#ffb27d; border-color:#7d5230}
+  .cat.S{color:#9dc4ff; border-color:#33507d}
+
+  .fieldside{border:1px solid var(--line); border-radius:10px; padding:10px; background:var(--panel)}
+  .fieldside.opp{border-color:#5a3038}
+  .fieldside.my{border-color:#2c4568}
+  .fieldside > .sidehead{display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap}
+  .fieldside > .sidehead .t{font-weight:700; font-size:14px}
+  .benchrow{display:flex; gap:3px; margin-left:auto; flex-wrap:wrap}
+  .benchbtn{padding:1px 2px; line-height:0; background:transparent; border:1px solid transparent; border-radius:8px; cursor:pointer}
+  .benchbtn:hover{border-color:#4a5665; background:var(--card)}
+  .benchbtn.on{opacity:.35; outline:1px solid var(--ok); cursor:default}
+  .spr.bench{width:42px; height:42px}
+  .fieldside.opp > .sidehead .t{color:var(--opp)}
+  .fieldside.my > .sidehead .t{color:var(--my)}
+  .slots{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .slots.single{grid-template-columns:1fr}
+  .slot{background:var(--card); border:1px dashed var(--line); border-radius:9px; padding:9px; min-height:70px}
+  .slot.filled{border-style:solid}
+  .slot .empty{color:var(--dim); text-align:center; padding:18px 0}
+
+  table.stats{border-collapse:collapse; margin-top:5px; width:100%}
+  table.stats td,table.stats th{padding:1px 5px; font-size:12px; text-align:center}
+  table.stats th{color:var(--dim); font-weight:normal}
+  table.stats td.lbl{color:var(--dim); text-align:left}
+  .rankbtn{width:20px; height:20px; padding:0; line-height:1; border-radius:5px; font-size:12px}
+  .rk{display:inline-block; min-width:26px; text-align:center; font-weight:600}
+  .rk.up{color:var(--ok)} .rk.dn{color:var(--opp)}
+
+  .mv{border-top:1px solid var(--line); padding:6px 0}
+  .mv .mvhead{display:flex; align-items:center; gap:6px; flex-wrap:wrap}
+  .mv .mvname{font-weight:600}
+  .dmg{margin:3px 0 0 10px; font-size:12px}
+  .dmg .tgt{color:var(--dim)}
+  .dmg .pct{font-weight:600}
+  .ko{display:inline-block; padding:0 6px; border-radius:8px; font-size:10.5px; background:#2a3240; color:#cfd8e3; margin-left:4px}
+  .ko.k1{background:#7a2b2b; color:#ffd9d9}
+  .ko.k2{background:#7a5a22; color:#ffedc9}
+  .eff{display:inline-block; padding:0 6px; border-radius:8px; font-size:10.5px; font-weight:700}
+  .eff.e4{background:#8c1d1d; color:#ffe3e3} .eff.e2{background:#8a4a15; color:#ffe8d2}
+  .eff.e1{background:#2a3240; color:#aeb9c7} .eff.eh{background:#1e4d33; color:#c9f5dd}
+  .eff.eq{background:#173a26; color:#9adbb6} .eff.e0{background:#3a3f46; color:#c5cbd3; text-decoration:line-through}
+
+  .seen{width:26px; height:22px; padding:0; font-size:12px}
+  .seen.yes{background:var(--ok); border-color:var(--ok); color:#08120d}
+  .mvrow.unseen .mvname,.mvrow.unseen .chip,.mvrow.unseen .cat{opacity:.45}
+  .mvrow.unseen .mvname{font-style:italic}
+
+  .speedbox{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:9px 12px}
+  .speedbox h3{font-size:13px; margin-bottom:6px; display:flex; gap:10px; align-items:center}
+  .sprow{display:flex; align-items:center; gap:8px; padding:2px 0; font-size:12.5px}
+  .sprow .side{width:34px; text-align:center; border-radius:5px; font-size:10.5px; padding:0 3px}
+  .sprow .side.my{background:#1d3a6b; color:#bcd4ff} .sprow .side.opp{background:#6b2424; color:#ffc9c9}
+  .sprow .nm{width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .sprow b{color:#fff}
+
+  .ac-wrap{position:relative; display:inline-block}
+  .ac-list{position:fixed; z-index:100; background:#10151b; border:1px solid #3b4655; border-radius:8px; min-width:340px; max-height:440px; overflow-y:auto; display:none; box-shadow:0 10px 26px #000b}
+  .ac-item{padding:6px 10px; cursor:pointer; display:flex; align-items:center; gap:8px; font-size:13px}
+  .ac-item:hover{background:#223047}
+  .ac-item .spr{width:34px; height:34px}
+  .spr{image-rendering:pixelated; object-fit:contain; flex:none}
+  .spr.sm{width:44px; height:44px}
+  .spr.lg{width:68px; height:68px; margin:-6px 0}
+  #toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#24405c; border:1px solid #4a6f96; color:#e8f1fa; padding:8px 18px; border-radius:9px; display:none; z-index:200; font-size:13px}
+  #modal-bg{position:fixed; inset:0; background:#000b; z-index:150; display:flex; align-items:center; justify-content:center}
+  .picker{background:var(--panel); border:1px solid #3b4655; border-radius:12px; width:min(720px,94vw); max-height:86vh; display:flex; flex-direction:column}
+  .picker .phead{display:flex; gap:10px; align-items:center; padding:10px 14px; border-bottom:1px solid var(--line); flex-wrap:wrap}
+  .picker .phead .t{font-weight:700}
+  .picker .plist{overflow-y:auto; padding:10px 14px; display:grid; grid-template-columns:1fr 1fr; gap:4px 10px}
+  .pmv{display:flex; align-items:center; gap:6px; padding:4px 8px; border:1px solid var(--line); border-radius:7px; cursor:pointer; font-size:12.5px; user-select:none}
+  .pmv:hover{border-color:#4a5665}
+  .pmv.sel{background:#1e4d33; border-color:var(--ok)}
+  .pmv .pw{margin-left:auto; color:var(--dim); font-size:11px; flex:none}
+  .battlebar{display:flex; align-items:center; gap:14px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:8px 12px}
+  .battlebar .t{font-weight:700; font-size:13px}
+  .battlebar label{color:var(--dim); font-size:12px; display:flex; align-items:center; gap:5px}
+  .evrow input{width:46px}
+  .editor{border-top:1px dashed var(--line); margin-top:7px; padding-top:7px}
+  .editor .grp{margin-bottom:6px}
+  .editor .grp .glbl{color:var(--dim); font-size:11px; margin-bottom:2px}
+  .footer-note{color:var(--dim); font-size:11px; padding:2px 12px 8px; text-align:center}
+  .durline{font-size:11.5px; color:var(--dim); margin-top:3px}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="app-title">⚔ 포켓몬 배틀 트래커</h1>
+  <span class="seg">
+    <button data-action="view" data-view="battle" id="tab-battle">⚔ 배틀</button>
+    <button data-action="view" data-view="team" id="tab-team">팀 관리</button>
+  </span>
+  <span class="seg">
+    <button data-action="mode" data-mode="single" id="btn-single">싱글</button>
+    <button data-action="mode" data-mode="double" id="btn-double">더블</button>
+  </span>
+  <span class="muted small" id="lbl-level">Lv.50 기준</span>
+  <span class="grow"></span>
+  <span class="seg" id="lang-seg">
+    <button data-action="lang" data-lang="ko">한국어</button>
+    <button data-action="lang" data-lang="en">English</button>
+    <button data-action="lang" data-lang="ja">日本語</button>
+  </span>
+  <span class="muted small" id="lbl-autosave">자동 저장됨</span>
+  <button data-action="save-team" id="btn-save-team">팀 저장</button>
+  <button data-action="load-team" id="btn-load-team">팀 불러오기</button>
+  <input type="file" id="team-file" accept=".json" style="display:none">
+  <button data-action="reset-opp" class="danger" id="btn-reset-opp">상대 초기화</button>
+</header>
+
+<main>
+  <aside class="panel" id="my-panel"></aside>
+  <section id="field-col"></section>
+  <aside class="panel" id="opp-panel"></aside>
+</main>
+<div class="footer-note" id="footer-note"></div>
+<div id="modal-root"></div>
+<div id="toast"></div>
+
+<script src="data.js"></script>
+<script>
+"use strict";
+const D = PBT_DATA;
+const LS_KEY = "pbt_state_v2";
+
+// ---------------- i18n ----------------
+// Internal state (items, abilities, team files) stays keyed by Korean names;
+// every user-facing string is translated at render time via t()/name helpers.
+const LANG_KEY = "pbt_lang";
+let lang = localStorage.getItem(LANG_KEY);
+if(!["ko","en","ja"].includes(lang)) lang = "ko";
+
+const STAT_NAMES = {
+  ko: ["HP","공격","방어","특공","특방","스피드"],
+  en: ["HP","Attack","Defense","Sp. Atk","Sp. Def","Speed"],
+  ja: ["HP","こうげき","ぼうぎょ","とくこう","とくぼう","すばやさ"],
+};
+const STAT_ABBR = {
+  ko: ["HP","공","방","특공","특방","스"],
+  en: ["HP","Atk","Def","SpA","SpD","Spe"],
+  ja: ["HP","攻撃","防御","特攻","特防","素早"],
+};
+const SS = i => STAT_ABBR[lang][i];
+
+const L = {
+ko: {
+  title:"포켓몬 배틀 트래커", tabBattle:"⚔ 배틀", tabTeam:"팀 관리", single:"싱글", double:"더블",
+  lv:"Lv.50 기준", autosave:"자동 저장됨", saveTeam:"팀 저장", loadTeam:"팀 불러오기", resetOpp:"상대 초기화",
+  footer:"가정: 레벨 50 · 상대 개체값 31 · 무보정 = 노력치 0/성격 무보정, 풀보정 = 노력치 252/성격 보정 · 지닌물건 보정(스카프/생명의구슬/달인의띠/힘의머리띠/박식안경/타입강화 ×1.2/반감열매/검은철구/전기구슬) 자동 적용 · 필드 효과는 비행타입이 아닌(또는 검은철구) 포켓몬에게 적용 (부유 특성 미반영) · 특성은 기록용 (위력 계산 미반영) · 테라스탈 · 급소 미반영",
+  none:"없음", min:"무보정", max:"풀보정", natNeutral:"무보정",
+  weathers:{none:"없음", sun:"쾌청 ☀", rain:"비 🌧", sand:"모래바람 🌪", snow:"설경 ❄"},
+  terrains:{none:"없음", electric:"일렉트릭필드", grassy:"그래스필드", psychic:"사이코필드", misty:"미스트필드"},
+  cat:{P:"물리", S:"특수", X:"변화"},
+  power:"위력", priPlus:p=>` 선공+${p}`, statusMove:"변화",
+  statusExcluded:"변화기 / 위력 미정 (계산 제외)", statusNoPower:"변화기 / 위력 미정",
+  oppFieldEmpty:"상대 필드가 비어 있음", myFieldEmpty:"내 필드가 비어 있음", noEffect:"효과 없음",
+  spreadNote:"(광역 0.75)", wUp:"날씨↑", wDn:"날씨↓", pUp:"위력↑", pDn:"위력↓", dUp:"내구↑", berryHalf:"열매 반감",
+  ohko:"확정 1타", rollN:m=>`난수 ${m}타`, guarShort:n=>`확${n}`, guarN:n=>`확정 ${n}타`,
+  emptySlot:"비어 있음", emptyHint:"↑ 위의 포켓몬 스프라이트 클릭", removeBtn:"빼기", burn:"화상", rankReset:"랭크 초기화",
+  bulk:(p,s)=>`내구지수 — 물리 ${p} · 특수 ${s}`,
+  noMovesMy:"기술 없음 — 팀 관리 탭에서 「편집」으로 추가", abilCand:"특성 후보:", itemLbl:"지닌물건:",
+  expMovesHdr:"예상 기술 (? = 미확인, ✔ = 확인됨)", addMove:"＋ 기술", seen:"확인됨", unseen:"미확인",
+  seenTitle:"확인 여부 토글", noExpMoves:"예상 기술 없음 — 오른쪽 상대 패널에서 추가",
+  megaOff:"◆ 메가 해제", megaEvolve:"메가진화", primal:"원시회귀", megaHint:"필드에서 메가진화 가능",
+  speedTitle:"⚡ 스피드 비교", twOpp:"상대 순풍", twMy:"내 순풍", fastFirst:"(빠른 순)", twNote:"(순풍)",
+  spdMin:"무보정", spdJun:"준속", spdMax:"최속", spdScarf:"스카프", tierQ:"추정?",
+  tierTitle:"선공/후공으로 확인한 스피드 추정", noField:"필드에 포켓몬이 없습니다", sideMy:"내", sideOpp:"상대",
+  onFieldTitle:" — 필드 위", toFieldTitle:" — 클릭해서 필드로",
+  myTeamTitle:"🔵 내 팀", myTeamSub:"배틀 전 프리셋", statsLbl:"실수치", onField:"필드 위 ✔", toField:"필드로",
+  edit:"편집", editClose:"편집 닫기", del:"삭제", done:"완료",
+  addPokemon:"＋ 포켓몬 추가 (이름 검색)", searchName:"이름 검색…", changePokemon:"포켓몬 변경",
+  natAbilItem:"성격 / 특성 / 지닌물건", ivsLbl:"개체값 (IV)", evsLbl:"노력치 (EV) — 합계",
+  movesMax:"기술 (최대 4개)", searchMoveN:n=>`기술 ${n} 검색…`,
+  oppTeamTitle:"🔴 상대 팀", baseStats:"종족값", notePh:"메모 (특성, 테라 타입 등)", expMovesLbl:"예상 기술:",
+  noneYet:"아직 없음", pickMovesBtn:"＋ 기술 선택 (배우는 기술 목록)", addOpp:"＋ 상대 포켓몬 추가 (이름 검색)",
+  oppField:"상대 필드", myField:"내 필드",
+  battleState:"🌦 배틀 상태", weatherLbl:"날씨", terrainLbl:"필드", weatherNote:"모래=바위 특방×1.5 · 설경=얼음 방어×1.5",
+  chooseItem:"지닌물건 선택", filterItems:"아이템 필터…", close:"닫기",
+  learnableN:n=>`배울 수 있는 기술 ${n}개`, pickHint:"클릭해서 예상 기술 추가/제거", selSuffix:"개 선택됨",
+  filterMoves:"기술 이름 필터…",
+  fieldFull:"필드가 가득 찼습니다 — 먼저 「빼기」를 눌러주세요",
+  delMyConfirm:"팀에서 삭제할까요?", delOppConfirm:"상대 목록에서 삭제할까요?",
+  resetConfirm:"상대 팀과 배틀 상태를 초기화할까요? (내 팀은 유지됩니다)",
+  resetDone:"새 매치 준비 완료 — 상대 팀 초기화됨",
+  savedOk:"my_team.json 저장 완료 ✓", downloadedNote:"my_team.json 다운로드됨 — 프로젝트 폴더로 옮겨주세요",
+  teamLoaded:n=>`팀 불러오기 완료 (${n}마리)`, teamReadFail:"팀을 읽지 못했습니다. my_team.json 형식을 확인해주세요.",
+  notTeamFile:"올바른 팀 파일이 아닙니다.", fileReadFail:"파일을 읽을 수 없습니다: ",
+  descs:{"choice-scarf":"스피드 ×1.5", "life-orb":"위력 ×1.3", "expert-belt":"효과굉장 ×1.2",
+    "muscle-band":"물리 ×1.1", "wise-glasses":"특수 ×1.1", "iron-ball":"스피드 ×0.5·부유무효",
+    "light-ball":"피카츄 공/특공 ×2", "focus-sash":"1방 버티기", "focus-band":"10% 버티기",
+    "leftovers":"매턴 회복", "sitrus-berry":"HP 회복", "lum-berry":"상태이상 회복",
+    "quick-claw":"20% 선공", "kings-rock":"풀죽음 10%", "bright-powder":"상대 명중↓",
+    "white-herb":"랭크다운 회복", "mental-herb":"멘탈계 회복", "shell-bell":"준 피해 1/8 회복",
+    "scope-lens":"급소율↑", "wide-lens":"명중 ×1.1", "zoom-lens":"후공 시 명중↑",
+    "big-root":"흡수량 ×1.3", "light-clay":"벽 8턴", "heat-rock":"쾌청 8턴", "damp-rock":"비 8턴",
+    "smooth-rock":"모래 8턴", "icy-rock":"설경 8턴", "metronome":"연속 사용 강화", "shed-shell":"교체 보장"},
+  typeBoost:tn=>`${tn} ×1.2`, berryResist:tn=>`${tn} 약점 반감`, berryChilan:tn=>`${tn} 반감`,
+},
+en: {
+  title:"Pokémon Battle Tracker", tabBattle:"⚔ Battle", tabTeam:"My Team", single:"Singles", double:"Doubles",
+  lv:"Lv. 50", autosave:"Auto-saved", saveTeam:"Save Team", loadTeam:"Load Team", resetOpp:"Reset Opponent",
+  footer:"Assumptions: Lv. 50 · opponent IVs 31 · Min = 0 EVs/neutral nature, Max = 252 EVs/+nature · item modifiers (Choice Scarf/Life Orb/Expert Belt/Muscle Band/Wise Glasses/type boosters ×1.2/resist berries/Iron Ball/Light Ball) applied automatically · terrain affects grounded Pokémon (non-Flying, or holding Iron Ball; Levitate not modeled) · abilities are notes only (not in the damage math) · Terastal and critical hits not modeled",
+  none:"None", min:"0 EV", max:"252+", natNeutral:"neutral",
+  weathers:{none:"None", sun:"Sun ☀", rain:"Rain 🌧", sand:"Sandstorm 🌪", snow:"Snow ❄"},
+  terrains:{none:"None", electric:"Electric Terrain", grassy:"Grassy Terrain", psychic:"Psychic Terrain", misty:"Misty Terrain"},
+  cat:{P:"Physical", S:"Special", X:"Status"},
+  power:"Power", priPlus:p=>` Priority +${p}`, statusMove:"Status",
+  statusExcluded:"Status move / variable power (not calculated)", statusNoPower:"Status move / variable power",
+  oppFieldEmpty:"Opponent's field is empty", myFieldEmpty:"Your field is empty", noEffect:"No effect",
+  spreadNote:"(spread 0.75)", wUp:"Weather↑", wDn:"Weather↓", pUp:"Power↑", pDn:"Power↓", dUp:"Bulk↑", berryHalf:"Berry halved",
+  ohko:"Guaranteed OHKO", rollN:m=>`Possible ${m}HKO`, guarShort:n=>`${n}HKO`, guarN:n=>`Guaranteed ${n}HKO`,
+  emptySlot:"Empty", emptyHint:"↑ click a sprite above", removeBtn:"Remove", burn:"Burned", rankReset:"Reset ranks",
+  bulk:(p,s)=>`Bulk index — Phys ${p} · Spec ${s}`,
+  noMovesMy:"No moves — add them via “Edit” in the My Team tab", abilCand:"Possible abilities:", itemLbl:"Item:",
+  expMovesHdr:"Expected moves (? = unseen, ✔ = seen)", addMove:"＋ Move", seen:"Seen", unseen:"Unseen",
+  seenTitle:"Toggle seen/unseen", noExpMoves:"No expected moves — add them in the opponent panel",
+  megaOff:"◆ Revert Mega", megaEvolve:"Mega Evolve", primal:"Primal Reversion", megaHint:"Can Mega Evolve on the field",
+  speedTitle:"⚡ Speed Check", twOpp:"Foe Tailwind", twMy:"My Tailwind", fastFirst:"(fastest first)", twNote:"(Tailwind)",
+  spdMin:"0 EV", spdJun:"252", spdMax:"252+", spdScarf:"Scarf", tierQ:"Tier?",
+  tierTitle:"Speed tier confirmed from turn order", noField:"No Pokémon on the field", sideMy:"Me", sideOpp:"Foe",
+  onFieldTitle:" — on the field", toFieldTitle:" — click to send out",
+  myTeamTitle:"🔵 My Team", myTeamSub:"pre-battle presets", statsLbl:"Stats", onField:"On field ✔", toField:"Send out",
+  edit:"Edit", editClose:"Close editor", del:"Delete", done:"Done",
+  addPokemon:"＋ Add Pokémon (search)", searchName:"Search name…", changePokemon:"Change Pokémon",
+  natAbilItem:"Nature / Ability / Item", ivsLbl:"IVs", evsLbl:"EVs — total",
+  movesMax:"Moves (max 4)", searchMoveN:n=>`Search move ${n}…`,
+  oppTeamTitle:"🔴 Opponent Team", baseStats:"Base stats", notePh:"Notes (ability, Tera type, …)", expMovesLbl:"Expected moves:",
+  noneYet:"None yet", pickMovesBtn:"＋ Pick moves (learnset)", addOpp:"＋ Add opponent Pokémon (search)",
+  oppField:"Opponent's Field", myField:"My Field",
+  battleState:"🌦 Battle Conditions", weatherLbl:"Weather", terrainLbl:"Terrain", weatherNote:"Sand = Rock SpD ×1.5 · Snow = Ice Def ×1.5",
+  chooseItem:"choose item", filterItems:"Filter items…", close:"Close",
+  learnableN:n=>`${n} learnable moves`, pickHint:"Click to add/remove expected moves", selSuffix:" selected",
+  filterMoves:"Filter moves…",
+  fieldFull:"The field is full — press “Remove” first",
+  delMyConfirm:"Remove from your team?", delOppConfirm:"Remove from the opponent list?",
+  resetConfirm:"Reset the opponent team and battle state? (Your team is kept)",
+  resetDone:"Ready for a new match — opponent cleared",
+  savedOk:"my_team.json saved ✓", downloadedNote:"my_team.json downloaded — move it into the project folder",
+  teamLoaded:n=>`Team loaded (${n} Pokémon)`, teamReadFail:"Couldn't read the team. Check the my_team.json format.",
+  notTeamFile:"Not a valid team file.", fileReadFail:"Can't read the file: ",
+  descs:{"choice-scarf":"Speed ×1.5", "life-orb":"Power ×1.3", "expert-belt":"SE moves ×1.2",
+    "muscle-band":"Physical ×1.1", "wise-glasses":"Special ×1.1", "iron-ball":"Speed ×0.5 · grounded",
+    "light-ball":"Pikachu Atk/SpA ×2", "focus-sash":"Survive 1 hit", "focus-band":"10% endure",
+    "leftovers":"Heal each turn", "sitrus-berry":"Restore HP", "lum-berry":"Cure status",
+    "quick-claw":"20% move first", "kings-rock":"10% flinch", "bright-powder":"Foe accuracy ↓",
+    "white-herb":"Undo stat drops", "mental-herb":"Cure mental effects", "shell-bell":"Heal 1/8 dmg dealt",
+    "scope-lens":"Crit rate ↑", "wide-lens":"Accuracy ×1.1", "zoom-lens":"Acc ↑ if slower",
+    "big-root":"Drain ×1.3", "light-clay":"Screens 8 turns", "heat-rock":"Sun 8 turns", "damp-rock":"Rain 8 turns",
+    "smooth-rock":"Sand 8 turns", "icy-rock":"Snow 8 turns", "metronome":"Repeated move boost", "shed-shell":"Always switch out"},
+  typeBoost:tn=>`${tn} ×1.2`, berryResist:tn=>`Halves SE ${tn}`, berryChilan:tn=>`Halves ${tn}`,
+},
+ja: {
+  title:"ポケモンバトルトラッカー", tabBattle:"⚔ バトル", tabTeam:"チーム管理", single:"シングル", double:"ダブル",
+  lv:"Lv.50基準", autosave:"自動保存", saveTeam:"チーム保存", loadTeam:"チーム読み込み", resetOpp:"相手リセット",
+  footer:"前提: レベル50・相手の個体値31・無振り=努力値0/性格補正なし、特化=努力値252/性格補正あり・持ち物補正（こだわりスカーフ/いのちのたま/たつじんのおび/ちからのハチマキ/ものしりメガネ/タイプ強化×1.2/半減きのみ/くろいてっきゅう/でんきだま）を自動適用・フィールド効果はひこうタイプ以外（またはくろいてっきゅう所持）に適用（ふゆうは未対応）・特性はメモ用（計算未反映）・テラスタル/急所は未対応",
+  none:"なし", min:"無振り", max:"特化", natNeutral:"補正なし",
+  weathers:{none:"なし", sun:"晴れ ☀", rain:"雨 🌧", sand:"砂あらし 🌪", snow:"雪 ❄"},
+  terrains:{none:"なし", electric:"エレキフィールド", grassy:"グラスフィールド", psychic:"サイコフィールド", misty:"ミストフィールド"},
+  cat:{P:"物理", S:"特殊", X:"変化"},
+  power:"威力", priPlus:p=>` 先制+${p}`, statusMove:"変化",
+  statusExcluded:"変化技・威力不定（計算対象外）", statusNoPower:"変化技・威力不定",
+  oppFieldEmpty:"相手の場は空です", myFieldEmpty:"自分の場は空です", noEffect:"効果なし",
+  spreadNote:"（範囲0.75）", wUp:"天候↑", wDn:"天候↓", pUp:"威力↑", pDn:"威力↓", dUp:"耐久↑", berryHalf:"きのみ半減",
+  ohko:"確定1発", rollN:m=>`乱数${m}発`, guarShort:n=>`確${n}`, guarN:n=>`確定${n}発`,
+  emptySlot:"空きスロット", emptyHint:"↑ 上のスプライトをクリック", removeBtn:"外す", burn:"やけど", rankReset:"ランクリセット",
+  bulk:(p,s)=>`耐久指数 — 物理 ${p}・特殊 ${s}`,
+  noMovesMy:"技なし — チーム管理タブの「編集」で追加", abilCand:"特性候補:", itemLbl:"持ち物:",
+  expMovesHdr:"予想技（? = 未確認、✔ = 確認済み）", addMove:"＋ 技", seen:"確認済み", unseen:"未確認",
+  seenTitle:"確認状態の切り替え", noExpMoves:"予想技なし — 右の相手パネルで追加",
+  megaOff:"◆ メガ解除", megaEvolve:"メガシンカ", primal:"ゲンシカイキ", megaHint:"場でメガシンカ可能",
+  speedTitle:"⚡ 素早さ比較", twOpp:"相手おいかぜ", twMy:"自分おいかぜ", fastFirst:"（速い順）", twNote:"（おいかぜ）",
+  spdMin:"無振り", spdJun:"準速", spdMax:"最速", spdScarf:"スカーフ", tierQ:"推定?",
+  tierTitle:"行動順から確認した素早さ推定", noField:"場にポケモンがいません", sideMy:"自分", sideOpp:"相手",
+  onFieldTitle:" — 場に出ている", toFieldTitle:" — クリックで場に出す",
+  myTeamTitle:"🔵 自分のチーム", myTeamSub:"バトル前プリセット", statsLbl:"実数値", onField:"場に出ている ✔", toField:"場に出す",
+  edit:"編集", editClose:"編集を閉じる", del:"削除", done:"完了",
+  addPokemon:"＋ ポケモン追加（名前検索）", searchName:"名前検索…", changePokemon:"ポケモン変更",
+  natAbilItem:"性格 / 特性 / 持ち物", ivsLbl:"個体値 (IV)", evsLbl:"努力値 (EV) — 合計",
+  movesMax:"技（最大4つ）", searchMoveN:n=>`技${n}を検索…`,
+  oppTeamTitle:"🔴 相手のチーム", baseStats:"種族値", notePh:"メモ（特性・テラスタイプなど）", expMovesLbl:"予想技:",
+  noneYet:"まだなし", pickMovesBtn:"＋ 技を選択（覚える技リスト）", addOpp:"＋ 相手のポケモン追加（名前検索）",
+  oppField:"相手の場", myField:"自分の場",
+  battleState:"🌦 バトル状態", weatherLbl:"天気", terrainLbl:"フィールド", weatherNote:"砂あらし=いわ特防×1.5・雪=こおり防御×1.5",
+  chooseItem:"持ち物を選択", filterItems:"アイテム検索…", close:"閉じる",
+  learnableN:n=>`覚える技 ${n}件`, pickHint:"クリックで予想技を追加/削除", selSuffix:"件選択中",
+  filterMoves:"技名で検索…",
+  fieldFull:"場がいっぱいです — 先に「外す」を押してください",
+  delMyConfirm:"チームから削除しますか？", delOppConfirm:"相手リストから削除しますか？",
+  resetConfirm:"相手チームとバトル状態をリセットしますか？（自分のチームは残ります）",
+  resetDone:"新しい試合の準備完了 — 相手チームをリセットしました",
+  savedOk:"my_team.json 保存完了 ✓", downloadedNote:"my_team.json をダウンロードしました — プロジェクトフォルダへ移動してください",
+  teamLoaded:n=>`チーム読み込み完了（${n}匹）`, teamReadFail:"チームを読み込めませんでした。my_team.json の形式を確認してください。",
+  notTeamFile:"正しいチームファイルではありません。", fileReadFail:"ファイルを読み込めません: ",
+  descs:{"choice-scarf":"素早さ×1.5", "life-orb":"威力×1.3", "expert-belt":"抜群×1.2",
+    "muscle-band":"物理×1.1", "wise-glasses":"特殊×1.1", "iron-ball":"素早さ×0.5・接地する",
+    "light-ball":"ピカチュウ攻/特攻×2", "focus-sash":"1発耐える", "focus-band":"10%で耐える",
+    "leftovers":"毎ターン回復", "sitrus-berry":"HP回復", "lum-berry":"状態異常回復",
+    "quick-claw":"20%先制", "kings-rock":"ひるみ10%", "bright-powder":"相手の命中↓",
+    "white-herb":"能力ダウン回復", "mental-herb":"メンタル系回復", "shell-bell":"与ダメ1/8回復",
+    "scope-lens":"急所率↑", "wide-lens":"命中×1.1", "zoom-lens":"後攻時命中↑",
+    "big-root":"吸収量×1.3", "light-clay":"壁8ターン", "heat-rock":"晴れ8ターン", "damp-rock":"雨8ターン",
+    "smooth-rock":"砂あらし8ターン", "icy-rock":"雪8ターン", "metronome":"連続使用で強化", "shed-shell":"必ず交代できる"},
+  typeBoost:tn=>`${tn}×1.2`, berryResist:tn=>`${tn}弱点半減`, berryChilan:tn=>`${tn}半減`,
+},
+};
+const t = k => (L[lang][k] !== undefined ? L[lang][k] : L.ko[k]);
+
+// display-name helpers (fall back to Korean, the canonical internal form)
+const dexName  = p => p[lang] || p.ko;
+const moveName = m => m[lang] || m.ko;
+const typeName = ty => lang === "en" ? ty : lang === "ja" ? (D.typeJa[ty] || ty) : D.typeKo[ty];
+const abilityName = a => lang === "ko" ? a : ((D.abilNames[a] || {})[lang] || a);
+const natureName = k => lang === "en" ? k : ((D.natures[k] || {})[lang] || k);
+
+const ITEMS = ["없음", ...D.items.map(it => it.ko)];
+const ITEM_I18N = {};
+D.items.forEach(it => ITEM_I18N[it.ko] = it);
+const itemName = ko => ko === "없음" ? t("none") : ((ITEM_I18N[ko] || {})[lang] || ko);
+const ITEM_URL = {}, ITEM_IDENT = {};
+D.items.forEach(it => { ITEM_URL[it.ko] = it.url; ITEM_IDENT[it.ko] = it.id; });
+const identOf = item => ITEM_IDENT[item] || "";
+// effect tables keyed by the official EN identifier (resolved from PokeAPI Korean names
+// at build time) so a mistranslated Korean label can never attach the wrong effect
+const TYPE_BOOST = {"silk-scarf":"Normal", "charcoal":"Fire", "mystic-water":"Water",
+  "miracle-seed":"Grass", "magnet":"Electric", "never-melt-ice":"Ice", "black-belt":"Fighting",
+  "poison-barb":"Poison", "soft-sand":"Ground", "sharp-beak":"Flying", "twisted-spoon":"Psychic",
+  "silver-powder":"Bug", "hard-stone":"Rock", "spell-tag":"Ghost", "dragon-fang":"Dragon",
+  "black-glasses":"Dark", "metal-coat":"Steel", "fairy-feather":"Fairy"};
+const RESIST_BERRY = {"occa-berry":"Fire", "passho-berry":"Water", "wacan-berry":"Electric",
+  "rindo-berry":"Grass", "yache-berry":"Ice", "chople-berry":"Fighting", "kebia-berry":"Poison",
+  "shuca-berry":"Ground", "coba-berry":"Flying", "payapa-berry":"Psychic", "tanga-berry":"Bug",
+  "charti-berry":"Rock", "kasib-berry":"Ghost", "haban-berry":"Dragon", "colbur-berry":"Dark",
+  "babiri-berry":"Steel", "chilan-berry":"Normal"};
+const TYPE_COLORS = {Normal:"#9FA19F",Fire:"#E62829",Water:"#2980EF",Grass:"#3FA129",Electric:"#C8A000",
+  Ice:"#3DCEF3",Fighting:"#FF8000",Poison:"#9141CB",Ground:"#915121",Flying:"#6D9FE8",Psychic:"#EF4179",
+  Bug:"#91A119",Rock:"#AFA981",Ghost:"#704170",Dragon:"#5060E1",Dark:"#624D4E",Steel:"#60A1B8",Fairy:"#E36BE3"};
+const catName = c => t("cat")[c];
+
+const MOVES_BY_ID = {};
+D.moves.forEach(m => MOVES_BY_ID[m.id] = m);
+const MOVE_BY_KO = {};
+D.moves.forEach(m => { if(MOVE_BY_KO[m.ko] === undefined) MOVE_BY_KO[m.ko] = m.id; });
+const DEX_BY_KEY = {};
+D.pokedex.forEach((p, i) => {
+  DEX_BY_KEY[p.ko + "|" + p.form] = i;
+  if(p.form === "default" && DEX_BY_KEY[p.ko] === undefined) DEX_BY_KEY[p.ko] = i;
+});
+
+// short item-effect line in the current language (identifiers are language-neutral)
+function itemDesc(ko){
+  const id = identOf(ko);
+  if(TYPE_BOOST[id]) return t("typeBoost")(typeName(TYPE_BOOST[id]));
+  if(RESIST_BERRY[id]) return (id === "chilan-berry" ? t("berryChilan") : t("berryResist"))(typeName(RESIST_BERRY[id]));
+  return t("descs")[id] || "";
+}
+
+function itemImg(ko){
+  const url = ITEM_URL[ko];
+  if(!url) return "";
+  return `<img class="spr itemicon" loading="lazy" src="${url}" onerror="this.style.display='none'" alt="">`;
+}
+function sprImg(dex, cls){
+  const p = D.pokedex[dex];
+  if(!p.sid) return "";
+  return `<img class="spr ${cls}" loading="lazy" alt=""
+    src="https://play.pokemonshowdown.com/sprites/gen5/${p.sid}.png"
+    data-fb="https://play.pokemonshowdown.com/sprites/dex/${p.sid}.png" onerror="sprErr(this)">`;
+}
+window.sprErr = img => {
+  if(img.dataset.fb){ img.src = img.dataset.fb; img.dataset.fb = ""; }
+  else img.style.display = "none";
+};
+
+// ---------------- state ----------------
+function makeMyMon(dex, nature, moves){
+  const p = D.pokedex[dex];
+  const evs = [4,0,0,0,0,0];
+  evs[p.base[1] >= p.base[3] ? 1 : 3] = 252;
+  evs[5] = 252;
+  return {dex, nature: nature || "Adamant", item:"없음", ability:(p.abil && p.abil[0]) || "",
+          ivs:[31,31,31,31,31,31], evs, moves:(moves||[]).slice(0,4)};
+}
+function makeSlot(i){ return {i, ranks:[0,0,0,0,0], burn:false, mega:null}; }
+function initialState(){
+  return {
+    mode:"double",
+    myTeam:(D.defaultTeam||[]).map(t => {
+      const m = makeMyMon(t.dex, t.nature, t.moves);
+      if(Array.isArray(t.ivs) && t.ivs.length === 6) m.ivs = t.ivs.slice();
+      if(Array.isArray(t.evs) && t.evs.length === 6) m.evs = t.evs.slice();
+      if(t.item) m.item = t.item;
+      if(t.ability) m.ability = t.ability;
+      return m;
+    }),
+    oppTeam:[],
+    field:{my:[null,null], opp:[null,null]},
+    tailwind:{my:false, opp:false},
+    weather:"none",
+    terrain:"none",
+  };
+}
+function load(){
+  try{
+    const s = JSON.parse(localStorage.getItem(LS_KEY));
+    if(s && s.myTeam && s.field){
+      if(!s.weather) s.weather = "none";
+      if(!s.terrain) s.terrain = "none";
+      s.myTeam.forEach(m => {
+        if(m.ability === undefined) m.ability = (D.pokedex[m.dex].abil || [])[0] || "";
+      });
+      s.oppTeam.forEach(o => { if(o.spdTier === undefined) o.spdTier = ""; });
+      const okItems = new Set(ITEMS);   // items no longer in the championship list -> 없음
+      s.myTeam.forEach(m => { if(!okItems.has(m.item)) m.item = "없음"; });
+      s.oppTeam.forEach(o => { if(!okItems.has(o.item)) o.item = "없음"; });
+      for(const side of ["my","opp"]) s.field[side].forEach(sl => { if(sl && sl.mega === undefined) sl.mega = null; });
+      return s;
+    }
+  }catch(e){}
+  return null;
+}
+let state = load() || initialState();
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+function commit(){ save(); render(); }
+
+let ui = {editMy:null, movePicker:null, itemPicker:null, view:"battle"};   // transient UI state
+
+// ---------------- stats & damage ----------------
+const rankMul = r => r >= 0 ? (2+r)/2 : 2/(2-r);
+
+function myStat(mon, i, dex){
+  const b = D.pokedex[dex ?? mon.dex].base[i];
+  const core = Math.floor((2*b + mon.ivs[i] + Math.floor(mon.evs[i]/4))/2);
+  if(i === 0) return b === 1 ? 1 : core + 60;
+  const n = D.natures[mon.nature];
+  let nat = 1;
+  if(n){ if(n.up === i) nat = 1.1; else if(n.down === i) nat = 0.9; }
+  return Math.floor((core + 5)*nat);
+}
+// scen: "min"(무보정: IV31 EV0 무보정) / "max"(풀보정: IV31 EV252 +성격)
+function oppStat(dex, i, scen){
+  const b = D.pokedex[dex].base[i];
+  if(i === 0){
+    if(b === 1) return 1;
+    return (scen === "min" ? Math.floor((2*b+31)/2) : Math.floor((2*b+31+63)/2)) + 60;
+  }
+  if(scen === "min") return Math.floor((2*b+31)/2) + 5;
+  return Math.floor((Math.floor((2*b+31+63)/2) + 5) * 1.1);
+}
+function itemStatMul(item, i, ko){
+  const id = identOf(item);
+  if(id === "choice-scarf" && i === 5) return 1.5;
+  if(id === "iron-ball"    && i === 5) return 0.5;
+  if(id === "light-ball" && ko === "피카츄" && (i === 1 || i === 3)) return 2;
+  return 1;
+}
+function bpItemMul(item, cat, moveType){
+  const id = identOf(item);
+  let mul = 1;
+  if(id === "muscle-band" && cat === "P") mul *= 1.1;
+  if(id === "wise-glasses" && cat === "S") mul *= 1.1;
+  if(TYPE_BOOST[id] === moveType) mul *= 1.2;
+  return mul;
+}
+function effStat(statVal, rank, item, i, ko){
+  return Math.floor(Math.floor(statVal * rankMul(rank)) * itemStatMul(item, i, ko));
+}
+const pokeRound = x => (x % 1 > 0.5 ? Math.ceil(x) : Math.floor(x));
+function typeEff(moveType, defTypes){
+  const row = D.typeChart[moveType] || {};
+  let e = 1;
+  for(const t of defTypes) if(row[t] !== undefined) e *= row[t];
+  return e;
+}
+// ---- weather & terrain ----
+const isGrounded = (types, item) => identOf(item) === "iron-ball" || !types.includes("Flying");
+// Ground moves hit Flying types holding 검은철구 (their Ground immunity is removed)
+function typeEffFor(moveType, defTypes, defItem){
+  const types = (moveType === "Ground" && identOf(defItem) === "iron-ball")
+    ? defTypes.filter(t => t !== "Flying") : defTypes;
+  return typeEff(moveType, types);
+}
+const GRASSY_HALVED = new Set([89, 222, 523]);   // 지진, 매그니튜드, 땅고르기
+function adjPower(m, atkGrounded, defGrounded, atkItem){
+  let mul = bpItemMul(atkItem, m.cat, m.type);
+  const t = state.terrain;
+  if(t === "electric" && m.type === "Electric" && atkGrounded) mul *= 1.3;
+  if(t === "grassy"   && m.type === "Grass"    && atkGrounded) mul *= 1.3;
+  if(t === "grassy"   && GRASSY_HALVED.has(m.id) && defGrounded) mul *= 0.5;
+  if(t === "psychic"  && m.type === "Psychic"  && atkGrounded) mul *= 1.3;
+  if(t === "misty"    && m.type === "Dragon"   && defGrounded) mul *= 0.5;
+  return Math.max(1, pokeRound(m.power * mul));
+}
+function weatherMod(moveType){
+  const w = state.weather;
+  if(w === "sun"){  if(moveType === "Fire")  return 1.5; if(moveType === "Water") return 0.5; }
+  if(w === "rain"){ if(moveType === "Water") return 1.5; if(moveType === "Fire")  return 0.5; }
+  return 1;
+}
+function weatherDefMul(cat, defTypes){
+  if(state.weather === "sand" && cat === "S" && defTypes.includes("Rock")) return 1.5;
+  if(state.weather === "snow" && cat === "P" && defTypes.includes("Ice"))  return 1.5;
+  return 1;
+}
+// returns [min,max] raw damage
+function calcDamage(power, atk, def, {stab=false, eff=1, spread=false, burn=false, lifeOrb=false, expertBelt=false, berry=false, wmod=1}){
+  if(power <= 0 || eff === 0) return [0,0];
+  let base = Math.floor(Math.floor(Math.floor(22 * power * atk / def) / 50)) + 2;
+  if(spread) base = pokeRound(base * 0.75);
+  if(wmod !== 1) base = pokeRound(base * wmod);
+  return [85,100].map(r => {
+    let d = Math.floor(base * r / 100);
+    if(stab) d = pokeRound(d * 1.5);
+    d = Math.floor(d * eff);
+    if(burn) d = Math.floor(d * 0.5);
+    if(expertBelt && eff > 1) d = pokeRound(d * 4915 / 4096);
+    if(lifeOrb) d = pokeRound(d * 5324 / 4096);
+    if(berry) d = pokeRound(d * 0.5);
+    return Math.max(1, d);
+  });
+}
+// ---- mega evolution (in-field toggle; megas/primals are hidden from search) ----
+const IS_MEGA_FORM = p => /^(Mega|Primal)\b/.test(p.form);
+const MEGAS_BY_DEX = {};
+D.pokedex.forEach((p, i) => {
+  if(!IS_MEGA_FORM(p)) return;
+  const baseIdx = D.pokedex.findIndex(q => q.en === p.en && q.form === "default");
+  if(baseIdx >= 0) (MEGAS_BY_DEX[baseIdx] ||= []).push(i);
+});
+function megaLabel(mi){
+  const p = D.pokedex[mi];
+  if(p.form.startsWith("Primal")) return t("primal");
+  const suffix = p.form.replace(/^Mega\s+/, "").replace(p.en, "").trim();
+  return t("megaEvolve") + (suffix ? " " + suffix : "");
+}
+function megaControls(side, k, baseDex, s){
+  const megas = MEGAS_BY_DEX[baseDex] || [];
+  if(!megas.length) return "";
+  if(s.mega != null)
+    return `<button class="small on" data-action="mega" data-side="${side}" data-k="${k}" data-dex="">${t("megaOff")}</button>`;
+  return megas.map(mi =>
+    `<button class="small" data-action="mega" data-side="${side}" data-k="${k}" data-dex="${mi}">${megaLabel(mi)}</button>`).join("");
+}
+function koLabel(minPct, maxPct){
+  if(maxPct <= 0) return "";
+  if(minPct >= 100) return `<span class="ko k1">${t("ohko")}</span>`;
+  const n = Math.ceil(100/minPct), m = Math.ceil(100/maxPct);
+  if(m < n) return `<span class="ko k2">${t("rollN")(m)}</span><span class="ko">${t("guarShort")(n)}</span>`;
+  return `<span class="ko ${n<=2?"k2":""}">${t("guarN")(n)}</span>`;
+}
+const pct = (d, hp) => Math.round(d/hp*1000)/10;
+// small badges showing that weather / terrain / items changed this calc
+function condMarks(wm, power, rawPower, dmul, eff, berry){
+  if(eff === 0) return "";
+  let s = "";
+  if(wm > 1) s += ` <span class="small" style="color:var(--warn)">${t("wUp")}</span>`;
+  else if(wm < 1) s += ` <span class="small muted">${t("wDn")}</span>`;
+  if(power > rawPower) s += ` <span class="small" style="color:var(--warn)">${t("pUp")}</span>`;
+  else if(power < rawPower) s += ` <span class="small muted">${t("pDn")}</span>`;
+  if(dmul > 1) s += ` <span class="small muted">${t("dUp")}</span>`;
+  if(berry) s += ` <span class="small muted">${t("berryHalf")}</span>`;
+  return s;
+}
+
+// ---------------- html helpers ----------------
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+const typeChips = types => types.map(ty =>
+  `<span class="chip" style="background:${TYPE_COLORS[ty]}">${typeName(ty)}</span>`).join("");
+function effChip(e){
+  const cls = e >= 4 ? "e4" : e >= 2 ? "e2" : e === 1 ? "e1" : e === 0 ? "e0" : e <= 0.25 ? "eq" : "eh";
+  const txt = e === 0.5 ? "×0.5" : e === 0.25 ? "×0.25" : "×" + e;
+  return `<span class="eff ${cls}">${txt}</span>`;
+}
+const catBadge = c => `<span class="cat ${c}">${catName(c)}</span>`;
+function monName(dex, big){
+  const p = D.pokedex[dex];
+  const form = p.form !== "default" ? ` <span class="form">${esc(p.form)}</span>` : "";
+  return `<span class="nm">${esc(dexName(p))}</span>${form}`;
+}
+function natureLabel(key){
+  const n = D.natures[key];
+  if(!n) return key;
+  if(n.up == null) return `${natureName(key)} (${t("natNeutral")})`;
+  return `${natureName(key)} (${SS(n.up)}↑ ${SS(n.down)}↓)`;
+}
+function moveLine(m){
+  return `<span class="chip" style="background:${TYPE_COLORS[m.type]}">${typeName(m.type)}</span>
+    <span class="mvname">${esc(moveName(m))}</span> ${catBadge(m.cat)}
+    <span class="muted small">${m.power ? t("power") + " " + m.power : ""}${m.pri > 0 ? t("priPlus")(m.pri) : ""}</span>`;
+}
+
+// ---------------- damage rendering ----------------
+// my fielded mon -> all fielded opp targets
+function myMoveDamageHtml(slot, moveId){
+  const m = MOVES_BY_ID[moveId];
+  if(!m) return "";
+  if(m.cat === "X" || m.power <= 0)
+    return `<div class="dmg muted">${t("statusExcluded")}</div>`;
+  const mon = state.myTeam[slot.i];
+  const dex = slot.mega ?? mon.dex;
+  const p = D.pokedex[dex];
+  const atkIdx = m.cat === "P" ? 1 : 3;
+  const atk = effStat(myStat(mon, atkIdx, dex), slot.ranks[atkIdx-1], mon.item, atkIdx, D.pokedex[mon.dex].ko);
+  const stab = p.types.includes(m.type);
+  const targets = fielded("opp");
+  if(!targets.length) return `<div class="dmg muted">${t("oppFieldEmpty")}</div>`;
+  const spread = state.mode === "double" && m.spread && targets.length > 1;
+  const atkG = isGrounded(p.types, mon.item);
+  const wm = weatherMod(m.type);
+  return targets.map(({slot:ts}) => {
+    const opp = state.oppTeam[ts.i];
+    const tdex = ts.mega ?? opp.dex;
+    const tp = D.pokedex[tdex];
+    const e = typeEffFor(m.type, tp.types, opp.item);
+    const dId = identOf(opp.item);
+    const berry = RESIST_BERRY[dId] === m.type && (e > 1 || dId === "chilan-berry");
+    const power = adjPower(m, atkG, isGrounded(tp.types, opp.item), mon.item);
+    const dmul = weatherDefMul(m.cat, tp.types);
+    const defIdx = m.cat === "P" ? 2 : 4;
+    const lines = ["min","max"].map(scen => {
+      const def = Math.floor(effStat(oppStat(tdex, defIdx, scen), ts.ranks[defIdx-1], opp.item, defIdx) * dmul);
+      const hp = oppStat(tdex, 0, scen);
+      const [lo,hi] = calcDamage(power, atk, def, {stab, eff:e, spread, wmod:wm, berry, burn:slot.burn && m.cat==="P",
+        lifeOrb:identOf(mon.item)==="life-orb", expertBelt:identOf(mon.item)==="expert-belt"});
+      if(e === 0) return null;
+      return `${scen === "min" ? t("min") : t("max")} <span class="pct">${pct(lo,hp)}~${pct(hi,hp)}%</span> ${koLabel(pct(lo,hp), pct(hi,hp))}`;
+    });
+    return `<div class="dmg">→ <span class="tgt">${esc(dexName(tp))}</span> ${effChip(e)}
+      ${e === 0 ? `<span class="muted">${t("noEffect")}</span>` : lines.join(` <span class="muted">·</span> `)}
+      ${spread ? `<span class="muted small">${t("spreadNote")}</span>` : ""}${condMarks(wm, power, m.power, dmul, e, berry)}</div>`;
+  }).join("");
+}
+// opp fielded mon's potential move -> all my fielded targets
+function oppMoveDamageHtml(slot, moveId){
+  const m = MOVES_BY_ID[moveId];
+  if(!m) return "";
+  if(m.cat === "X" || m.power <= 0) return `<div class="dmg muted">${t("statusNoPower")}</div>`;
+  const opp = state.oppTeam[slot.i];
+  const dex = slot.mega ?? opp.dex;
+  const p = D.pokedex[dex];
+  const stab = p.types.includes(m.type);
+  const atkIdx = m.cat === "P" ? 1 : 3;
+  const targets = fielded("my");
+  if(!targets.length) return `<div class="dmg muted">${t("myFieldEmpty")}</div>`;
+  const spread = state.mode === "double" && m.spread && targets.length > 1;
+  const atkG = isGrounded(p.types, opp.item);
+  const wm = weatherMod(m.type);
+  return targets.map(({slot:ms}) => {
+    const mine = state.myTeam[ms.i];
+    const mdex = ms.mega ?? mine.dex;
+    const mp = D.pokedex[mdex];
+    const e = typeEffFor(m.type, mp.types, mine.item);
+    const dId = identOf(mine.item);
+    const berry = RESIST_BERRY[dId] === m.type && (e > 1 || dId === "chilan-berry");
+    const power = adjPower(m, atkG, isGrounded(mp.types, mine.item), opp.item);
+    const dmul = weatherDefMul(m.cat, mp.types);
+    const defIdx = m.cat === "P" ? 2 : 4;
+    const def = Math.floor(effStat(myStat(mine, defIdx, mdex), ms.ranks[defIdx-1], mine.item, defIdx) * dmul);
+    const hp = myStat(mine, 0, mdex);
+    if(e === 0) return `<div class="dmg">→ <span class="tgt">${esc(dexName(mp))}</span> ${effChip(0)} <span class="muted">${t("noEffect")}</span></div>`;
+    const parts = ["min","max"].map(scen => {
+      const atk = effStat(oppStat(dex, atkIdx, scen), slot.ranks[atkIdx-1], opp.item, atkIdx, D.pokedex[opp.dex].ko);
+      const [lo,hi] = calcDamage(power, atk, def, {stab, eff:e, spread, wmod:wm, berry, burn:slot.burn && m.cat==="P",
+        lifeOrb:identOf(opp.item)==="life-orb", expertBelt:identOf(opp.item)==="expert-belt"});
+      return `${scen === "min" ? t("min") : t("max")} <span class="pct">${pct(lo,hp)}~${pct(hi,hp)}%</span> ${koLabel(pct(lo,hp), pct(hi,hp))}`;
+    });
+    return `<div class="dmg">→ <span class="tgt">${esc(dexName(mp))}</span> ${effChip(e)} ${parts.join(` <span class="muted">·</span> `)}
+      ${spread ? `<span class="muted small">${t("spreadNote")}</span>` : ""}${condMarks(wm, power, m.power, dmul, e, berry)}</div>`;
+  }).join("");
+}
+
+// ---------------- field helpers ----------------
+function slotsFor(side){ return state.mode === "single" ? [0] : [0,1]; }
+function fielded(side){
+  return slotsFor(side).map(k => ({k, slot: state.field[side][k]})).filter(x => x.slot).map(x => x);
+}
+function isFielded(side, teamIdx){
+  return state.field[side].some((s,k) => s && s.i === teamIdx && slotsFor(side).includes(k));
+}
+function placeOnField(side, teamIdx, slotK){
+  state.field[side][slotK] = makeSlot(teamIdx);
+  commit();
+}
+
+// ---------------- rank control ----------------
+function rankCtrls(side, k, ranks){
+  return [1,2,3,4,5].map(i => {
+    const r = ranks[i-1];
+    const cls = r > 0 ? "up" : r < 0 ? "dn" : "";
+    return `<tr><td class="lbl">${SS(i)}</td>
+      <td><button class="rankbtn" data-action="rank" data-side="${side}" data-k="${k}" data-stat="${i}" data-d="-1">−</button>
+      <span class="rk ${cls}">${r > 0 ? "+"+r : r}</span>
+      <button class="rankbtn" data-action="rank" data-side="${side}" data-k="${k}" data-stat="${i}" data-d="1">＋</button></td></tr>`;
+  }).join("");
+}
+
+// ---------------- render: my fielded slot ----------------
+function renderMySlot(k){
+  const s = state.field.my[k];
+  if(!s) return `<div class="slot"><div class="empty">${t("emptySlot")}<br><span class="small">${t("emptyHint")}</span></div></div>`;
+  const mon = state.myTeam[s.i];
+  if(!mon){ state.field.my[k] = null; return renderMySlot(k); }
+  const dex = s.mega ?? mon.dex;
+  const p = D.pokedex[dex];
+  const ability = s.mega != null ? (p.abil || []).map(abilityName).join("/") : abilityName(mon.ability || "");
+  const stats = [0,1,2,3,4,5].map(i => myStat(mon, i, dex));
+  const effs  = [null,1,2,3,4,5].map((i, idx) => idx === 0 ? stats[0] : effStat(stats[idx], s.ranks[idx-1], mon.item, idx, D.pokedex[mon.dex].ko));
+  const durP = Math.round(stats[0]*stats[2]/0.411), durS = Math.round(stats[0]*stats[4]/0.411);
+  const movesHtml = mon.moves.length
+    ? mon.moves.map(id => {
+        const m = MOVES_BY_ID[id];
+        return m ? `<div class="mv"><div class="mvhead">${moveLine(m)}</div>${myMoveDamageHtml(s, id)}</div>` : "";
+      }).join("")
+    : `<div class="mv muted small">${t("noMovesMy")}</div>`;
+  return `<div class="slot filled">
+    <div class="head">${sprImg(dex, "lg")}${monName(dex)} ${typeChips(p.types)}
+      <span class="grow" style="flex:1"></span>
+      <button class="small" data-action="unfield" data-side="my" data-k="${k}">${t("removeBtn")}</button></div>
+    <div class="row small muted">${natureLabel(mon.nature)} · ${esc(ability)} · ${itemImg(mon.item)}${esc(itemName(mon.item))}
+      ${megaControls("my", k, mon.dex, s)}
+      <label><input type="checkbox" data-field="burn" data-side="my" data-k="${k}" ${s.burn ? "checked" : ""}> ${t("burn")}</label>
+      <button class="small" data-action="rankreset" data-side="my" data-k="${k}">${t("rankReset")}</button></div>
+    <div style="display:flex; gap:12px; align-items:flex-start">
+      <table class="stats"><tr><td class="lbl">HP</td><td colspan="1"><b>${stats[0]}</b></td></tr>
+        ${[1,2,3,4,5].map(i => `<tr><td class="lbl">${SS(i)}</td>
+          <td>${effs[i] !== stats[i] ? `<span class="muted small">${stats[i]}→</span>` : ""}<b>${effs[i]}</b></td></tr>`).join("")}
+      </table>
+      <table class="stats">${rankCtrls("my", k, s.ranks)}</table>
+    </div>
+    <div class="durline">${t("bulk")(durP.toLocaleString(), durS.toLocaleString())}</div>
+    ${movesHtml}
+  </div>`;
+}
+
+// ---------------- render: opp fielded slot ----------------
+function renderOppSlot(k){
+  const s = state.field.opp[k];
+  if(!s) return `<div class="slot"><div class="empty">${t("emptySlot")}<br><span class="small">${t("emptyHint")}</span></div></div>`;
+  const opp = state.oppTeam[s.i];
+  if(!opp){ state.field.opp[k] = null; return renderOppSlot(k); }
+  const dex = s.mega ?? opp.dex;
+  const p = D.pokedex[dex];
+  const statRows = [0,1,2,3,4,5].map(i => {
+    const mn = oppStat(dex, i, "min"), mx = oppStat(dex, i, "max");
+    if(i === 0) return `<tr><td class="lbl">HP</td><td>${mn}</td><td>${mx}</td></tr>`;
+    const emn = effStat(mn, s.ranks[i-1], opp.item, i, D.pokedex[opp.dex].ko), emx = effStat(mx, s.ranks[i-1], opp.item, i, D.pokedex[opp.dex].ko);
+    return `<tr><td class="lbl">${SS(i)}</td><td>${emn}</td><td>${emx}</td></tr>`;
+  }).join("");
+  const movesHtml = opp.moves.length
+    ? opp.moves.map((mv, mi) => {
+        const m = MOVES_BY_ID[mv.id];
+        if(!m) return "";
+        return `<div class="mv mvrow ${mv.seen ? "" : "unseen"}">
+          <div class="mvhead">
+            <button class="seen ${mv.seen ? "yes" : ""}" title="${t("seenTitle")}" data-action="seen" data-oi="${s.i}" data-mi="${mi}">${mv.seen ? "✔" : "?"}</button>
+            ${moveLine(m)} ${mv.seen ? `<span class="small" style="color:var(--ok)">${t("seen")}</span>` : `<span class="small muted">${t("unseen")}</span>`}
+          </div>${oppMoveDamageHtml(s, mv.id)}</div>`;
+      }).join("")
+    : `<div class="mv muted small">${t("noExpMoves")}</div>`;
+  return `<div class="slot filled">
+    <div class="head">${sprImg(dex, "lg")}${monName(dex)} ${typeChips(p.types)}
+      <span style="flex:1"></span>
+      <button class="small" data-action="unfield" data-side="opp" data-k="${k}">${t("removeBtn")}</button></div>
+    <div class="row small muted">${t("abilCand")} ${esc((p.abil || []).map(abilityName).join(" / ") || "?")}</div>
+    <div class="row small muted">${t("itemLbl")}
+      <button class="small" data-action="pick-item" data-side="opp" data-i="${s.i}">${itemImg(opp.item)}${esc(itemName(opp.item))} ▾</button>
+      ${megaControls("opp", k, opp.dex, s)}
+      <label><input type="checkbox" data-field="burn" data-side="opp" data-k="${k}" ${s.burn ? "checked" : ""}> ${t("burn")}</label>
+      <button class="small" data-action="rankreset" data-side="opp" data-k="${k}">${t("rankReset")}</button></div>
+    <div style="display:flex; gap:12px; align-items:flex-start">
+      <table class="stats"><tr><th></th><th>${t("min")}</th><th>${t("max")}</th></tr>${statRows}</table>
+      <table class="stats">${rankCtrls("opp", k, s.ranks)}</table>
+    </div>
+    <div style="margin-top:4px" class="row"><span class="small muted">${t("expMovesHdr")}</span>
+      <button class="small" data-action="pick-moves" data-oi="${s.i}">${t("addMove")}</button></div>
+    ${movesHtml}
+  </div>`;
+}
+
+// ---------------- render: speed panel ----------------
+function renderSpeed(){
+  const rows = [];
+  for(const {slot:s} of fielded("my")){
+    const mon = state.myTeam[s.i];
+    const dex = s.mega ?? mon.dex;
+    let v = effStat(myStat(mon, 5, dex), s.ranks[4], mon.item, 5);
+    if(state.tailwind.my) v *= 2;
+    rows.push({side:"my", name:dexName(D.pokedex[dex]) + (s.mega != null ? "◆" : ""), key:v, html:`<b>${v}</b>${state.tailwind.my ? ` <span class="small muted">${t("twNote")}</span>` : ""}`});
+  }
+  for(const {slot:s} of fielded("opp")){
+    const opp = state.oppTeam[s.i];
+    const dex = s.mega ?? opp.dex;
+    const tw = state.tailwind.opp ? 2 : 1;
+    const rmul = rankMul(s.ranks[4]);
+    const f = base => Math.floor(Math.floor(base * rmul) * tw);
+    const mubo = f(oppStat(dex, 5, "min"));
+    const jun  = f(Math.floor((2*D.pokedex[dex].base[5]+31+63)/2)+5);
+    const choe = f(oppStat(dex, 5, "max"));
+    const scarf = Math.floor(choe * 1.5);
+    const hasScarf = identOf(opp.item) === "choice-scarf";
+    const tier = opp.spdTier || "";
+    const vals = {min:mubo, jun:jun, max:choe, scarf:scarf};
+    const seg = (key, label, val) => {
+      const on = tier === key || (!tier && key === "scarf" && hasScarf);
+      const style = on ? "color:var(--warn); font-weight:700" : tier ? "opacity:.4" : "";
+      return `<span style="${style}">${label} <b>${val}</b></span>`;
+    };
+    const sel = `<select data-field="opp-spdtier" data-oi="${s.i}" title="${t("tierTitle")}">
+      <option value="">${t("tierQ")}</option>
+      <option value="min" ${tier==="min"?"selected":""}>${t("spdMin")}</option>
+      <option value="jun" ${tier==="jun"?"selected":""}>${t("spdJun")}</option>
+      <option value="max" ${tier==="max"?"selected":""}>${t("spdMax")}</option>
+      <option value="scarf" ${tier==="scarf"?"selected":""}>${t("spdScarf")}</option></select>`;
+    rows.push({side:"opp", name:dexName(D.pokedex[dex]) + (s.mega != null ? "◆" : ""),
+      key: tier ? vals[tier] : (hasScarf ? scarf : choe),
+      html:`${seg("min",t("spdMin"),mubo)} · ${seg("jun",t("spdJun"),jun)} · ${seg("max",t("spdMax"),choe)} · ${seg("scarf",t("spdScarf"),scarf)} ${sel}${state.tailwind.opp ? ` <span class="small muted">${t("twNote")}</span>` : ""}`});
+  }
+  rows.sort((a,b) => b.key - a.key);
+  return `<div class="speedbox"><h3>${t("speedTitle")}
+      <button class="${state.tailwind.opp ? "on" : ""}" data-action="tw" data-side="opp">${t("twOpp")}</button>
+      <button class="${state.tailwind.my ? "on" : ""}" data-action="tw" data-side="my">${t("twMy")}</button>
+      <span class="small muted">${t("fastFirst")}</span></h3>
+    ${rows.length ? rows.map(r => `<div class="sprow"><span class="side ${r.side}">${r.side === "my" ? t("sideMy") : t("sideOpp")}</span><span class="nm">${esc(r.name)}</span>${r.html}</div>`).join("") : `<div class="muted small">${t("noField")}</div>`}
+  </div>`;
+}
+
+// ---------------- bench: click a sprite to load that pokemon onto the field ----------------
+function benchHtml(side){
+  const team = side === "my" ? state.myTeam : state.oppTeam;
+  if(!team.length) return "";
+  return `<span class="benchrow">` + team.map((mem, i) => {
+    const on = isFielded(side, i);
+    const nm = dexName(D.pokedex[mem.dex]);
+    return `<button class="benchbtn ${on ? "on" : ""}" data-action="bench" data-side="${side}" data-i="${i}"
+      title="${esc(nm)}${on ? t("onFieldTitle") : t("toFieldTitle")}">${sprImg(mem.dex, "bench")}</button>`;
+  }).join("") + `</span>`;
+}
+// ---------------- render: my team panel ----------------
+function fieldButtons(side, teamIdx){
+  if(isFielded(side, teamIdx)) return `<span class="small" style="color:var(--ok)">${t("onField")}</span>`;
+  return `<button class="small primary" data-action="bench" data-side="${side}" data-i="${teamIdx}">${t("toField")}</button>`;
+}
+function renderMyEditor(idx){
+  const mon = state.myTeam[idx];
+  const evTotal = mon.evs.reduce((a,b) => a+b, 0);
+  return `<div class="editor">
+    <div class="grp"><div class="glbl">${t("changePokemon")}</div>
+      <span class="ac-wrap"><input class="ac-input" data-kind="dex" data-ctx="my-dex:${idx}" placeholder="${t("searchName")}" style="width:200px"><div class="ac-list"></div></span></div>
+    <div class="grp"><div class="glbl">${t("natAbilItem")}</div>
+      <select data-field="nature" data-i="${idx}">${Object.keys(D.natures).map(n =>
+        `<option value="${n}" ${n === mon.nature ? "selected" : ""}>${natureLabel(n)}</option>`).join("")}</select>
+      <select data-field="ability" data-i="${idx}">${(D.pokedex[mon.dex].abil && D.pokedex[mon.dex].abil.length ? D.pokedex[mon.dex].abil : ["?"]).map(a =>
+        `<option value="${esc(a)}" ${a === mon.ability ? "selected" : ""}>${esc(abilityName(a))}</option>`).join("")}</select>
+      <button data-action="pick-item" data-side="my" data-i="${idx}">${itemImg(mon.item)}${esc(itemName(mon.item))} ▾</button></div>
+    <div class="grp"><div class="glbl">${t("ivsLbl")}</div><div class="row evrow">
+      ${[0,1,2,3,4,5].map(i => `<label class="small muted">${SS(i)}<br><input type="number" min="0" max="31" value="${mon.ivs[i]}" data-field="iv" data-i="${idx}" data-s="${i}"></label>`).join("")}</div></div>
+    <div class="grp"><div class="glbl">${t("evsLbl")} <b style="color:${evTotal > 508 ? "var(--opp)" : "var(--ok)"}">${evTotal}</b>/508</div><div class="row evrow">
+      ${[0,1,2,3,4,5].map(i => `<label class="small muted">${SS(i)}<br><input type="number" min="0" max="252" step="4" value="${mon.evs[i]}" data-field="ev" data-i="${idx}" data-s="${i}"></label>`).join("")}</div></div>
+    <div class="grp"><div class="glbl">${t("movesMax")}</div>
+      ${[0,1,2,3].map(mi => {
+        const cur = MOVES_BY_ID[mon.moves[mi]];
+        return `<div class="row"><span class="ac-wrap">
+          <input class="ac-input" data-kind="move" data-ctx="my-move:${idx}:${mi}" placeholder="${t("searchMoveN")(mi+1)}" value="${cur ? esc(moveName(cur)) : ""}" style="width:180px"><div class="ac-list"></div></span>
+          ${cur ? `${catBadge(cur.cat)} <span class="small muted">${cur.power ? t("power") + " " + cur.power : t("statusMove")}</span>
+          <button class="small danger" data-action="mymove-del" data-i="${idx}" data-mi="${mi}">✕</button>` : ""}</div>`;
+      }).join("")}</div>
+    <button data-action="edit-close">${t("done")}</button></div>`;
+}
+function renderMyPanel(){
+  const cards = state.myTeam.map((mon, idx) => {
+    const p = D.pokedex[mon.dex];
+    const stats = [0,1,2,3,4,5].map(i => myStat(mon, i));
+    const moves = mon.moves.map(id => MOVES_BY_ID[id]).filter(Boolean).map(m => esc(moveName(m))).join(" / ") || "—";
+    return `<div class="card ${ui.editMy === idx ? "editing" : ""}">
+      <div class="head">${sprImg(mon.dex, "sm")}${monName(mon.dex)} ${typeChips(p.types)}
+        ${MEGAS_BY_DEX[mon.dex] ? `<span class="small" style="color:var(--warn)" title="${t("megaHint")}">◆</span>` : ""}</div>
+      <div class="row small muted">${natureLabel(mon.nature)} · ${esc(abilityName(mon.ability || "?"))} · ${itemImg(mon.item)}${esc(itemName(mon.item))}</div>
+      <div class="row small">${t("statsLbl")} ${stats.join(" / ")}</div>
+      <div class="row small muted">${moves}</div>
+      <div class="row">${fieldButtons("my", idx)}
+        <button class="small" data-action="edit-my" data-i="${idx}">${ui.editMy === idx ? t("editClose") : t("edit")}</button>
+        <button class="small danger" data-action="del-my" data-i="${idx}">${t("del")}</button></div>
+      ${ui.editMy === idx ? renderMyEditor(idx) : ""}
+    </div>`;
+  }).join("");
+  const addBox = state.myTeam.length < 6
+    ? `<div class="card" style="min-width:250px"><div class="row"><span class="ac-wrap"><input class="ac-input" data-kind="dex" data-ctx="my-add" placeholder="${t("addPokemon")}" style="width:230px"><div class="ac-list"></div></span></div></div>`
+    : "";
+  document.getElementById("my-panel").innerHTML =
+    `<h2>${t("myTeamTitle")} <span class="count">${state.myTeam.length}/6 · ${t("myTeamSub")}</span></h2><div class="teamrow">${cards}${addBox}</div>`;
+}
+
+// ---------------- render: opp team panel ----------------
+function renderOppPanel(){
+  const cards = state.oppTeam.map((opp, idx) => {
+    const p = D.pokedex[opp.dex];
+    const b = p.base;
+    const movesHtml = opp.moves.map((mv, mi) => {
+      const m = MOVES_BY_ID[mv.id];
+      if(!m) return "";
+      return `<div class="row mvrow ${mv.seen ? "" : "unseen"}">
+        <button class="seen ${mv.seen ? "yes" : ""}" data-action="seen" data-oi="${idx}" data-mi="${mi}">${mv.seen ? "✔" : "?"}</button>
+        ${moveLine(m)}
+        <button class="small danger" data-action="opp-move-del" data-oi="${idx}" data-mi="${mi}">✕</button></div>`;
+    }).join("");
+    return `<div class="card">
+      <div class="head">${sprImg(opp.dex, "sm")}${monName(opp.dex)} ${typeChips(p.types)}
+        ${MEGAS_BY_DEX[opp.dex] ? `<span class="small" style="color:var(--warn)" title="${t("megaHint")}">◆</span>` : ""}</div>
+      <div class="row small muted">${t("baseStats")} ${b.join("/")}</div>
+      <div class="row small muted">${t("abilCand")} ${esc((p.abil || []).map(abilityName).join(" / ") || "?")}</div>
+      <div class="row small muted">${t("itemLbl")}
+        <button class="small" data-action="pick-item" data-side="opp" data-i="${idx}">${itemImg(opp.item)}${esc(itemName(opp.item))} ▾</button></div>
+      <div class="row"><input style="width:100%" placeholder="${t("notePh")}" value="${esc(opp.note || "")}" data-field="opp-note" data-oi="${idx}"></div>
+      <div class="row small muted">${t("expMovesLbl")}</div>
+      ${movesHtml || `<div class="small muted" style="margin:2px 0 4px">${t("noneYet")}</div>`}
+      <div class="row"><button data-action="pick-moves" data-oi="${idx}">${t("pickMovesBtn")}</button></div>
+      <div class="row">${fieldButtons("opp", idx)}
+        <button class="small danger" data-action="del-opp" data-i="${idx}">${t("del")}</button></div>
+    </div>`;
+  }).join("");
+  const addBox = state.oppTeam.length < 6
+    ? `<div class="row"><span class="ac-wrap"><input class="ac-input" data-kind="dex" data-ctx="opp-add" placeholder="${t("addOpp")}" style="width:100%; min-width:240px"><div class="ac-list"></div></span></div>`
+    : "";
+  document.getElementById("opp-panel").innerHTML =
+    `<h2>${t("oppTeamTitle")} <span class="count">${state.oppTeam.length}/6</span></h2>${cards}${addBox}`;
+}
+
+// ---------------- render: field column ----------------
+function renderField(){
+  const single = state.mode === "single";
+  const oppSlots = slotsFor("opp").map(k => renderOppSlot(k)).join("");
+  const mySlots  = slotsFor("my").map(k => renderMySlot(k)).join("");
+  const battleBar = `<div class="battlebar"><span class="t">${t("battleState")}</span>
+    <label>${t("weatherLbl")} <select data-field="weather">${Object.entries(t("weathers")).map(([k,v]) =>
+      `<option value="${k}" ${state.weather === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
+    <label>${t("terrainLbl")} <select data-field="terrain">${Object.entries(t("terrains")).map(([k,v]) =>
+      `<option value="${k}" ${state.terrain === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
+    <span class="small muted">${t("weatherNote")}</span></div>`;
+  document.getElementById("field-col").innerHTML = `
+    <div class="fieldside opp"><div class="sidehead"><span class="t">${t("oppField")}</span>${benchHtml("opp")}</div>
+      <div class="slots ${single ? "single" : ""}">${oppSlots}</div></div>
+    ${battleBar}
+    ${renderSpeed()}
+    <div class="fieldside my"><div class="sidehead"><span class="t">${t("myField")}</span>${benchHtml("my")}</div>
+      <div class="slots ${single ? "single" : ""}">${mySlots}</div></div>`;
+}
+
+// ---------------- move picker modal (opponent potential moves, from learnset) ----------------
+function learnableMoves(dex){
+  const learn = D.pokedex[dex].learn;
+  const ids = (learn && learn.length) ? learn : D.moves.map(m => m.id);
+  const arr = ids.map(id => MOVES_BY_ID[id]).filter(Boolean);
+  arr.sort((a,b) => (a.cat === "X") - (b.cat === "X") || b.power - a.power || moveName(a).localeCompare(moveName(b), lang));
+  return arr;
+}
+function renderItemPicker(root){
+  const pk = ui.itemPicker;
+  const holder = pk.side === "my" ? state.myTeam[pk.idx] : state.oppTeam[pk.idx];
+  if(!holder){ ui.itemPicker = null; root.innerHTML = ""; return; }
+  const p = D.pokedex[holder.dex];
+  const rows = ITEMS.map(ko => {
+    const it = ITEM_I18N[ko];
+    const s = it ? `${it.ko} ${it.en} ${it.ja}`.toLowerCase() : itemName(ko).toLowerCase();
+    return `<div class="pmv pitem ${holder.item === ko ? "sel" : ""}" data-item="${ko}" data-s="${esc(s)}">
+      ${ko === "없음" ? `<span style="width:24px"></span>` : itemImg(ko)}<span>${esc(itemName(ko))}</span>
+      <span class="pw">${itemDesc(ko)}</span></div>`;
+  }).join("");
+  root.innerHTML = `<div id="modal-bg"><div class="picker">
+    <div class="phead">${sprImg(holder.dex, "sm")}<span class="t">${esc(dexName(p))} — ${t("chooseItem")}</span>
+      <input class="pfilter" placeholder="${t("filterItems")}" style="width:150px">
+      <span style="flex:1"></span>
+      <button data-action="close-picker">${t("close")}</button></div>
+    <div class="plist">${rows}</div>
+  </div></div>`;
+  if(root.querySelector){
+    const pf = root.querySelector(".pfilter");
+    if(pf) pf.addEventListener("input", () => {
+      const q = pf.value.trim().toLowerCase();
+      root.querySelectorAll(".pmv").forEach(el => { el.style.display = !q || el.dataset.s.includes(q) ? "" : "none"; });
+    });
+  }
+}
+function renderModal(){
+  const root = document.getElementById("modal-root");
+  if(ui.itemPicker != null){ renderItemPicker(root); return; }
+  if(ui.movePicker == null){ root.innerHTML = ""; return; }
+  const opp = state.oppTeam[ui.movePicker];
+  if(!opp){ ui.movePicker = null; root.innerHTML = ""; return; }
+  const p = D.pokedex[opp.dex];
+  const have = new Set(opp.moves.map(m => m.id));
+  const arr = learnableMoves(opp.dex);
+  const rows = arr.map(m => `<div class="pmv ${have.has(m.id) ? "sel" : ""}" data-mid="${m.id}" data-s="${esc((m.ko + " " + m.en + " " + m.ja).toLowerCase())}">
+      <span class="chip" style="background:${TYPE_COLORS[m.type]}">${typeName(m.type)}</span>
+      <span>${esc(moveName(m))}</span> ${catBadge(m.cat)}
+      <span class="pw">${m.power ? t("power") + " " + m.power : t("statusMove")}${m.pri > 0 ? " · " + t("priPlus")(m.pri).trim() : ""}</span>
+    </div>`).join("");
+  root.innerHTML = `<div id="modal-bg"><div class="picker">
+    <div class="phead">${sprImg(opp.dex, "sm")}<span class="t">${esc(dexName(p))} — ${t("learnableN")(arr.length)}</span>
+      <span class="small muted">${t("pickHint")} (<span id="pick-count">${opp.moves.length}</span>${t("selSuffix")})</span>
+      <input class="pfilter" placeholder="${t("filterMoves")}" style="width:160px">
+      <span style="flex:1"></span>
+      <button data-action="close-picker">${t("done")}</button></div>
+    <div class="plist">${rows}</div>
+  </div></div>`;
+  if(root.querySelector){
+    const pf = root.querySelector(".pfilter");
+    if(pf) pf.addEventListener("input", () => {
+      const q = pf.value.trim().toLowerCase();
+      root.querySelectorAll(".pmv").forEach(el => { el.style.display = !q || el.dataset.s.includes(q) ? "" : "none"; });
+    });
+  }
+}
+
+// ---------------- autocomplete ----------------
+// megas/primals are excluded from search — add the base form and mega-evolve on the field
+// index is rebuilt on language switch; search strings match any of ko/en/ja
+const DEX_ITEMS = [], MOVE_ITEMS = [];
+function buildSearchIndexes(){
+  DEX_ITEMS.length = 0;
+  D.pokedex.forEach((p, i) => {
+    if(IS_MEGA_FORM(p)) return;
+    DEX_ITEMS.push({
+      v: i,
+      s: (p.ko + " " + p.en + " " + p.ja + " " + (p.form !== "default" ? p.form : "")).toLowerCase(),
+      h: `${sprImg(i, "")}${esc(dexName(p))}${p.form !== "default" ? ` <span class="small muted">${esc(p.form)}</span>` : ""} ${typeChips(p.types)} <span class="small muted">${p.base.join("/")}</span>`,
+    });
+  });
+  MOVE_ITEMS.length = 0;
+  D.moves.forEach(m => MOVE_ITEMS.push({
+    v: m.id,
+    s: (m.ko + " " + m.en + " " + m.ja).toLowerCase(),
+    h: `<span class="chip" style="background:${TYPE_COLORS[m.type]}">${typeName(m.type)}</span> ${esc(moveName(m))} ${catBadge(m.cat)} <span class="small muted">${m.power ? t("power") + " " + m.power : t("statusMove")}</span>`,
+  }));
+}
+buildSearchIndexes();
+
+// dropdown is position:fixed so the scrolling side panels can't clip it
+function positionList(inp, list){
+  const r = inp.getBoundingClientRect();
+  const below = window.innerHeight - r.bottom;
+  list.style.minWidth = Math.max(340, r.width) + "px";
+  list.style.left = Math.max(6, Math.min(r.left, window.innerWidth - 370)) + "px";
+  if(below < 300 && r.top > below){
+    list.style.top = "auto";
+    list.style.bottom = (window.innerHeight - r.top + 4) + "px";
+    list.style.maxHeight = Math.min(440, r.top - 12) + "px";
+  } else {
+    list.style.bottom = "auto";
+    list.style.top = (r.bottom + 4) + "px";
+    list.style.maxHeight = Math.min(440, below - 12) + "px";
+  }
+}
+function bindSearchInputs(){
+  document.querySelectorAll(".ac-input").forEach(inp => {
+    const list = inp.parentElement.querySelector(".ac-list");
+    let items = inp.dataset.kind === "dex" ? DEX_ITEMS : MOVE_ITEMS;
+    let limited = false;
+    // my-team move slots: limit to what that pokemon can actually learn
+    const ctx = inp.dataset.ctx || "";
+    if(inp.dataset.kind === "move" && ctx.startsWith("my-move:")){
+      const teamIdx = +ctx.split(":")[1];
+      const mon = state.myTeam[teamIdx];
+      const learn = mon && new Set(D.pokedex[mon.dex].learn || []);
+      if(learn && learn.size){ items = MOVE_ITEMS.filter(it => learn.has(it.v)); limited = true; }
+    }
+    const search = () => {
+      const q = inp.value.trim().toLowerCase();
+      if(!q && !limited){ list.style.display = "none"; list.innerHTML = ""; return; }
+      const cap = q ? 20 : Infinity;   // empty query on a learnset list: browse everything
+      const res = [];
+      for(const it of items){ if(!q || it.s.includes(q)){ res.push(it); if(res.length >= cap) break; } }
+      list.innerHTML = res.map(it => `<div class="ac-item" data-v="${it.v}">${it.h}</div>`).join("");
+      list.style.display = res.length ? "block" : "none";
+      if(res.length) positionList(inp, list);
+      list.querySelectorAll(".ac-item").forEach(el => el.addEventListener("mousedown", e => {
+        e.preventDefault();
+        onPick(inp.dataset.ctx, +el.dataset.v);
+      }));
+    };
+    inp.addEventListener("input", search);
+    inp.addEventListener("focus", search);
+    inp.addEventListener("blur", () => setTimeout(() => { list.style.display = "none"; }, 150));
+  });
+}
+// close dropdowns when a panel scrolls (their fixed position would go stale)
+document.addEventListener("scroll", e => {
+  if(e.target.closest && e.target.closest(".ac-list")) return;
+  document.querySelectorAll(".ac-list").forEach(l => l.style.display = "none");
+}, true);
+function onPick(ctx, v){
+  const [kind, a, b] = ctx.split(":");
+  if(kind === "my-add"){ if(state.myTeam.length < 6) state.myTeam.push(makeMyMon(v)); }
+  else if(kind === "my-dex"){
+    const mon = state.myTeam[+a];
+    mon.dex = v;
+    mon.ability = (D.pokedex[v].abil || [])[0] || "";
+  }
+  else if(kind === "my-move"){
+    const mon = state.myTeam[+a];
+    while(mon.moves.length <= +b && mon.moves.length < 4) mon.moves.push(null);
+    mon.moves[+b] = v;
+    mon.moves = mon.moves.filter(x => x != null).slice(0,4);
+  }
+  else if(kind === "opp-add"){ if(state.oppTeam.length < 6) state.oppTeam.push({dex:v, item:"없음", moves:[], note:"", spdTier:""}); }
+  commit();
+}
+
+// ---------------- events ----------------
+function removeFromTeam(side, idx){
+  const team = side === "my" ? state.myTeam : state.oppTeam;
+  team.splice(idx, 1);
+  state.field[side] = state.field[side].map(s => {
+    if(!s) return null;
+    if(s.i === idx) return null;
+    if(s.i > idx) s.i--;
+    return s;
+  });
+}
+document.addEventListener("click", e => {
+  // item-picker row: set item and close
+  const pit = e.target.closest && e.target.closest(".pitem");
+  if(pit && ui.itemPicker != null){
+    const t = ui.itemPicker;
+    const holder = t.side === "my" ? state.myTeam[t.idx] : state.oppTeam[t.idx];
+    if(holder) holder.item = pit.dataset.item;
+    ui.itemPicker = null;
+    commit();
+    return;
+  }
+  // move-picker row toggle (no full re-render: keeps scroll/filter position)
+  const pmv = e.target.closest && e.target.closest(".pmv");
+  if(pmv && ui.movePicker != null){
+    const opp = state.oppTeam[ui.movePicker];
+    const mid = +pmv.dataset.mid;
+    const ix = opp.moves.findIndex(m => m.id === mid);
+    if(ix >= 0) opp.moves.splice(ix, 1);
+    else opp.moves.push({id:mid, seen:false});
+    save();
+    pmv.classList.toggle("sel", ix < 0);
+    const cnt = document.getElementById("pick-count");
+    if(cnt) cnt.textContent = opp.moves.length;
+    return;
+  }
+  if(e.target.id === "modal-bg"){ ui.movePicker = null; ui.itemPicker = null; render(); return; }
+  const btn = e.target.closest("[data-action]");
+  if(!btn) return;
+  const d = btn.dataset;
+  switch(d.action){
+    case "lang":
+      if(lang !== d.lang){
+        lang = d.lang;
+        localStorage.setItem(LANG_KEY, lang);
+        buildSearchIndexes();
+        render();
+      }
+      break;
+    case "view": ui.view = d.view; render(); break;
+    case "pick-moves": ui.movePicker = +d.oi; render(); break;
+    case "pick-item": ui.itemPicker = {side:d.side, idx:+d.i}; render(); break;
+    case "close-picker": ui.movePicker = null; ui.itemPicker = null; render(); break;
+    case "mode":
+      state.mode = d.mode;
+      if(state.mode === "single"){ state.field.my[1] = null; state.field.opp[1] = null; }
+      commit(); break;
+    case "tw": state.tailwind[d.side] = !state.tailwind[d.side]; commit(); break;
+    case "bench": {
+      const side = d.side, i = +d.i;
+      if(isFielded(side, i)) break;
+      const k = slotsFor(side).find(k => !state.field[side][k]);
+      if(k === undefined){
+        if(state.mode === "single"){ ui.view = "battle"; state.field[side][0] = makeSlot(i); commit(); }
+        else toast(t("fieldFull"));
+        break;
+      }
+      ui.view = "battle";
+      placeOnField(side, i, k);
+      break;
+    }
+    case "unfield": state.field[d.side][+d.k] = null; commit(); break;
+    case "rank": {
+      const s = state.field[d.side][+d.k]; if(!s) break;
+      const i = +d.stat - 1;
+      s.ranks[i] = Math.max(-6, Math.min(6, s.ranks[i] + (+d.d)));
+      commit(); break;
+    }
+    case "rankreset": { const s = state.field[d.side][+d.k]; if(s) s.ranks = [0,0,0,0,0]; commit(); break; }
+    case "mega": {
+      const s = state.field[d.side][+d.k];
+      if(s){ s.mega = d.dex === "" ? null : +d.dex; commit(); }
+      break;
+    }
+    case "seen": { const mv = state.oppTeam[+d.oi].moves[+d.mi]; mv.seen = !mv.seen; commit(); break; }
+    case "opp-move-del": state.oppTeam[+d.oi].moves.splice(+d.mi, 1); commit(); break;
+    case "mymove-del": state.myTeam[+d.i].moves.splice(+d.mi, 1); commit(); break;
+    case "edit-my": ui.editMy = ui.editMy === +d.i ? null : +d.i; render(); break;
+    case "edit-close": ui.editMy = null; render(); break;
+    case "del-my": if(confirm(t("delMyConfirm"))){ removeFromTeam("my", +d.i); if(ui.editMy === +d.i) ui.editMy = null; commit(); } break;
+    case "del-opp": if(confirm(t("delOppConfirm"))){ removeFromTeam("opp", +d.i); commit(); } break;
+    case "save-team": saveTeamJson(); break;
+    case "load-team": document.getElementById("team-file").click(); break;
+    case "reset-opp":
+      if(confirm(t("resetConfirm"))){
+        state.oppTeam = [];
+        state.field.opp = [null, null];
+        state.tailwind = {my:false, opp:false};
+        state.weather = "none";
+        state.terrain = "none";
+        state.field.my.forEach(s => { if(s){ s.ranks = [0,0,0,0,0]; s.burn = false; } });
+        commit();
+        toast(t("resetDone"));
+      }
+      break;
+  }
+});
+
+// ---- my_team.json save / load ----
+function teamJson(){
+  return JSON.stringify({team: state.myTeam.map(mon => {
+    const p = D.pokedex[mon.dex];
+    return {
+      name: p.ko, name_en: p.en, form: p.form,
+      nature: mon.nature, item: mon.item, ability: mon.ability, types: p.types,
+      ivs: mon.ivs, evs: mon.evs,
+      // name/power/category/type kept for compatibility with 실수치.py
+      moves: mon.moves.map(id => MOVES_BY_ID[id]).filter(Boolean).map(m => ({
+        name: m.ko, id: m.id, power: m.power,
+        category: m.cat === "P" ? "physical" : m.cat === "S" ? "special" : "status",
+        type: m.type,
+      })),
+    };
+  })}, null, 2);
+}
+async function saveTeamJson(){
+  const text = teamJson();
+  if(window.showSaveFilePicker){
+    try{
+      const h = await showSaveFilePicker({suggestedName:"my_team.json",
+        types:[{description:"JSON", accept:{"application/json":[".json"]}}]});
+      const w = await h.createWritable();
+      await w.write(text);
+      await w.close();
+      toast(t("savedOk"));
+      return;
+    }catch(e){
+      if(e && e.name === "AbortError") return;   // user cancelled the picker
+    }
+  }
+  const blob = new Blob([text], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "my_team.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast(t("downloadedNote"));
+}
+function importMyTeam(obj){
+  const team = [];
+  for(const mem of (obj.team || []).slice(0, 6)){
+    let idx = DEX_BY_KEY[(mem.name || "") + "|" + (mem.form || "default")];
+    if(idx === undefined) idx = DEX_BY_KEY[mem.name];
+    if(idx === undefined) continue;
+    const mon = makeMyMon(idx, mem.nature);
+    if(mem.item && ITEMS.includes(mem.item)) mon.item = mem.item;
+    if(mem.ability) mon.ability = mem.ability;
+    if(Array.isArray(mem.ivs) && mem.ivs.length === 6) mon.ivs = mem.ivs.map(Number);
+    if(Array.isArray(mem.evs) && mem.evs.length === 6) mon.evs = mem.evs.map(Number);
+    mon.moves = [];
+    for(const mv of (mem.moves || []).slice(0, 4)){
+      const id = (mv.id && MOVES_BY_ID[mv.id]) ? mv.id : MOVE_BY_KO[mv.name];
+      if(id) mon.moves.push(id);
+    }
+    team.push(mon);
+  }
+  if(team.length){
+    state.myTeam = team;
+    state.field.my = [null, null];
+    ui.editMy = null;
+    commit();
+    toast(t("teamLoaded")(team.length));
+  } else alert(t("teamReadFail"));
+}
+document.getElementById("team-file").addEventListener("change", e => {
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try{
+      const s = JSON.parse(rd.result);
+      if(s && s.team) importMyTeam(s);                       // my_team.json
+      else if(s && s.myTeam && s.field){ state = s; if(!s.weather) s.weather="none"; if(!s.terrain) s.terrain="none"; commit(); }  // old full save
+      else alert(t("notTeamFile"));
+    }catch(err){ alert(t("fileReadFail") + err.message); }
+  };
+  rd.readAsText(f, "utf-8");
+  e.target.value = "";
+});
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { t.style.display = "none"; }, 2800);
+}
+document.addEventListener("change", e => {
+  const el = e.target.closest("[data-field]");
+  if(!el) return;
+  const d = el.dataset;
+  switch(d.field){
+    case "nature": state.myTeam[+d.i].nature = el.value; break;
+    case "ability": state.myTeam[+d.i].ability = el.value; break;
+    case "iv":     state.myTeam[+d.i].ivs[+d.s] = Math.max(0, Math.min(31, +el.value || 0)); break;
+    case "ev":     state.myTeam[+d.i].evs[+d.s] = Math.max(0, Math.min(252, +el.value || 0)); break;
+    case "burn":   { const s = state.field[d.side][+d.k]; if(s) s.burn = el.checked; break; }
+    case "opp-note": state.oppTeam[+d.oi].note = el.value; break;
+    case "opp-spdtier": state.oppTeam[+d.oi].spdTier = el.value; break;
+    case "weather": state.weather = el.value; break;
+    case "terrain": state.terrain = el.value; break;
+  }
+  commit();
+});
+
+// ---------------- main render ----------------
+function renderChrome(){
+  document.documentElement.lang = lang;
+  document.title = t("title");
+  document.getElementById("app-title").textContent = "⚔ " + t("title");
+  document.getElementById("tab-battle").textContent = t("tabBattle");
+  document.getElementById("tab-team").textContent = t("tabTeam");
+  document.getElementById("btn-single").textContent = t("single");
+  document.getElementById("btn-double").textContent = t("double");
+  document.getElementById("lbl-level").textContent = t("lv");
+  document.getElementById("lbl-autosave").textContent = t("autosave");
+  document.getElementById("btn-save-team").textContent = t("saveTeam");
+  document.getElementById("btn-load-team").textContent = t("loadTeam");
+  document.getElementById("btn-reset-opp").textContent = t("resetOpp");
+  document.getElementById("footer-note").textContent = t("footer");
+  document.querySelectorAll("#lang-seg button").forEach(b =>
+    b.classList.toggle("active", b.dataset.lang === lang));
+}
+function render(){
+  document.body.dataset.view = ui.view;
+  renderChrome();
+  document.getElementById("tab-battle").classList.toggle("active", ui.view === "battle");
+  document.getElementById("tab-team").classList.toggle("active", ui.view === "team");
+  document.getElementById("btn-single").classList.toggle("active", state.mode === "single");
+  document.getElementById("btn-double").classList.toggle("active", state.mode === "double");
+  renderMyPanel();
+  renderField();
+  renderOppPanel();
+  renderModal();
+  bindSearchInputs();
+}
+render();
+</script>
+</body>
+</html>
