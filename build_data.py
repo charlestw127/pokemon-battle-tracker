@@ -171,13 +171,14 @@ def build_sprite_ids(pokedex: list):
     for e in sd.values():
         base = e.get("baseSpecies", e["name"])
         groups.setdefault(toid(base), []).append(e)
-    sids, abils, misses = [], [], []
+    sids, abils, wts, misses = [], [], [], []
     for p in pokedex:
         b = toid(p["name_en"])
         cands = groups.get(b)
         if not cands:
             sids.append(b)
             abils.append([])
+            wts.append(0)
             misses.append((p["name_en"], p["form"]))
             continue
         base_e = next((e for e in cands if not e.get("forme")), cands[0])
@@ -217,7 +218,8 @@ def build_sprite_ids(pokedex: list):
             if v and v not in seen:
                 seen.append(v)
         abils.append(seen)
-    return sids, abils, misses
+        wts.append(chosen.get("weightkg", 0))
+    return sids, abils, wts, misses
 
 def build_learnsets(dex_out: list, moves: list):
     """Attach learnable move ids to each pokedex entry from Showdown learnsets.
@@ -456,11 +458,12 @@ def main():
     print(f"  {len(species_ja)} species matched")
 
     print("matching sprites/abilities against Showdown pokedex ...")
-    sids, abils, sprite_misses = build_sprite_ids(pokedex)
+    sids, abils, wts, sprite_misses = build_sprite_ids(pokedex)
     ability_names = build_ability_names()
     abil_i18n, missing_ab = {}, set()
-    for p, sid, ab in zip(dex_out, sids, abils):
+    for p, sid, ab, wt in zip(dex_out, sids, abils, wts):
         p["sid"] = sid
+        p["wt"] = wt   # kg, for Grass Knot / Low Kick / Heavy Slam / Heat Crash
         stored = []
         for a in ab:
             rec = ability_names.get(norm_ability(a))

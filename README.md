@@ -7,7 +7,9 @@ opponent scouting, in **Korean, English, or Japanese**.
 
 **▶ Use it online: <https://charlestw127.github.io/pokemon-battle-tracker/>** — or download
 and double-click. (The online and local versions each keep their own auto-saved state; move
-teams between them with Save/Load Team or a Showdown paste.)
+teams between them with Save/Load Team or a Showdown paste.) The online version is an
+installable PWA: add it to your phone's home screen and it keeps working offline — the
+layout adapts to phone screens, so it's tournament-venue ready.
 
 ![Battle view](docs/screenshot-battle.png)
 
@@ -112,6 +114,14 @@ under each *expected* opponent move, damage vs. your fielded Pokémon:
   ×1.5, snow Ice Def ×1.5, and item modifiers on **both sides** — Life Orb, Expert Belt,
   Muscle Band, Wise Glasses, type-boost items (×1.2), super-effective-halving berries (and
   Chilan Berry), Light Ball, and Iron Ball's grounding effect.
+- **Special-mechanic moves calculate correctly:** Psyshock/Psystrike/Secret Sword (hit
+  Defense), Body Press (attacks with the user's Defense), Foul Play (uses the target's Attack
+  and Attack boosts), Knock Off (×1.5 vs item holders), Acrobatics (×2 itemless), Facade (×2
+  when burned, ignoring the burn drop), Hex (×2 vs burned targets), Weather Ball and Terrain
+  Pulse (type and power change), Rising Voltage, Expanding Force (boost + spread in terrain),
+  Stored Power/Power Trip (from current stat boosts), Gyro Ball and Electro Ball (from the
+  actual speed values on both sides), and Grass Knot/Low Kick/Heavy Slam/Heat Crash (from
+  real Pokémon weights, forms included).
 - **Field-wide abilities are applied automatically** for anyone on the field:
   - **Fairy Aura / Dark Aura** — ×1.33 on Fairy/Dark moves from *any* Pokémon, flipped to
     ×0.75 by **Aura Break**
@@ -127,13 +137,22 @@ under each *expected* opponent move, damage vs. your fielded Pokémon:
 - Opponents show **four tiers at once**: `0 EV · 252 · 252+ · Scarf`. Once turn order reveals
   which tier the opponent is actually in, pin it with the dropdown and the sort uses that value.
 
-### 5. Between matches
+### 5. Between games and matches
 
-- **Reset Opponent** clears the opponent team, field, ranks, weather, and terrain — your team
+- **Type Matchup** (collapsible, above the battle bar) shows a 6×6 grid of both teams during
+  team preview: your best STAB multiplier into each opponent (⚔) and theirs into you (🛡) —
+  a quick read for picking your four.
+- **Next Game** resets the field, ranks, walls, Tailwind, weather, and terrain but keeps
+  *both* teams and everything you've learned (seen moves, items, abilities, speed tiers) —
+  built for games 2 and 3 of a Bo3 set.
+- **Reset Opponent** clears the opponent team and all battle state — your team
   stays. One click and you're ready for the next opponent.
 - **Save Team / Load Team** exports/imports `my_team.json`, so teams survive browser data
   wipes and can be shared between machines. Dropping a `my_team.json` next to
   `build_data.py` also bakes it in as the default team on the next data build.
+- **📤 Copy as Showdown** (My Team tab) exports your team as standard teambuilder text — the
+  exact format the 📋 paste button reads back, so teams round-trip between the tracker,
+  Pokémon Showdown, and other players.
 
 ## Feature reference
 
@@ -143,16 +162,18 @@ under each *expected* opponent move, damage vs. your fielded Pokémon:
 | Formats | Singles & Doubles, Lv. 50, Mega Evolution & Primal Reversion, fixed championship item list |
 | My team | 6 slots, nature/ability/item editor, IV/EV editor with 508 cap check, learnset-limited move picker, Lv. 50 stats, bulk index |
 | Opponent | 6 slots, 0 EV vs 252+ stat ranges, ability picker (auto for single-ability species), item picker, expected moves from real learnsets, seen/unseen tracking, notes, speed-tier pinning |
-| Battle | Per-slot stat ranks, burn, in-field Mega toggle, weather, terrain, Tailwind per side, Reflect/Light Screen/Aurora Veil per side, bench quick-swap |
-| Damage | Two-scenario % ranges, KO labels, STAB/type/spread/weather/terrain/burn/wall/item modifiers, auto-applied Auras & Ruin abilities & Steely Spirit, immunity handling (incl. Iron Ball vs. Ground) |
-| Persistence | Auto-save (localStorage), JSON team export/import, Showdown paste import for both teams, one-click opponent reset |
+| Battle | Per-slot stat ranks, burn, in-field Mega toggle, weather, terrain, Tailwind per side, Reflect/Light Screen/Aurora Veil per side, bench quick-swap, type-matchup preview grid, Next Game (Bo3) reset |
+| Damage | Two-scenario % ranges, KO labels, STAB/type/spread/weather/terrain/burn/wall/item modifiers, auto-applied Auras & Ruin abilities & Steely Spirit, ~20 special-mechanic moves (Body Press, Psyshock, Foul Play, weight & speed moves, …), immunity handling (incl. Iron Ball vs. Ground) |
+| Persistence | Auto-save (localStorage), JSON team export/import, Showdown paste import for both teams + text export, one-click opponent reset |
+| Platform | Works from a double-click or any static host; installable PWA with offline support; responsive phone layout |
 
 ### Known simplifications
 
 Only field-wide abilities (Fairy/Dark Aura, Aura Break, the four Ruin abilities, Steely
 Spirit) affect the damage math — other abilities (Levitate, Intimidate, Multiscale…) are
 tracked as notes only. Infiltrator's screen bypass, critical hits, accuracy, and multi-hit
-distributions aren't modeled. Opponent IVs are assumed to be 31.
+distributions aren't modeled. Hex sees burn (the tracked status) but not poison/paralysis.
+Opponent IVs are assumed to be 31.
 
 ## Rebuilding the data (`data.js`)
 
@@ -182,6 +203,7 @@ prints warnings for anything unresolved.
 |---|---|
 | `battle_tracker.html` | The entire app — markup, styles, logic, i18n strings |
 | `index.html` | Redirect stub so GitHub Pages serves the app at the repo root |
+| `manifest.json`, `sw.js` | PWA install metadata and the offline service worker |
 | `data.js` | Generated game database (Pokémon, moves, items, type chart, translations) |
 | `build_data.py` | Regenerates `data.js` from public data sources |
 | `pokedex.json` | Base stats + KO/EN names input used by the build script |

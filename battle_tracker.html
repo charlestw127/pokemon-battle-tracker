@@ -1,8 +1,12 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#171c23">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="docs/icon-192.png">
+<link rel="icon" href="docs/icon-192.png">
 <title>포켓몬 배틀 트래커</title>
 <style>
   :root{
@@ -125,6 +129,9 @@
   .pmv:hover{border-color:#4a5665}
   .pmv.sel{background:#1e4d33; border-color:var(--ok)}
   .pmv .pw{margin-left:auto; color:var(--dim); font-size:11px; flex:none}
+  table.mgrid{border-collapse:collapse; margin-top:6px}
+  table.mgrid td, table.mgrid th{padding:3px 8px; text-align:center; border:1px solid var(--line); font-size:11px}
+  table.mgrid .spr.bench{width:36px; height:36px}
   #paste-ta{width:100%; height:280px; font:12px/1.4 Consolas,monospace; color:var(--text); background:#12161c; border:1px solid var(--line); border-radius:8px; padding:8px; resize:vertical}
   #paste-ta:focus{outline:none; border-color:var(--my)}
   .battlebar{display:flex; align-items:center; gap:14px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:8px 12px}
@@ -136,6 +143,32 @@
   .editor .grp .glbl{color:var(--dim); font-size:11px; margin-bottom:2px}
   .footer-note{color:var(--dim); font-size:11px; padding:2px 12px 8px; text-align:center}
   .durline{font-size:11.5px; color:var(--dim); margin-top:3px}
+
+  /* ---- mobile: stack everything in one column ---- */
+  @media (max-width: 900px){
+    header{flex-wrap:wrap; row-gap:6px; position:static; padding:8px 10px}
+    header h1{font-size:14px}
+    main{display:flex; flex-direction:column; height:auto; padding:8px; gap:8px}
+    .panel{max-height:none; overflow:visible}
+    #field-col{order:1; overflow:visible; max-height:none}
+    #opp-panel{order:2}
+    .slots{grid-template-columns:1fr}
+    .slots.single{grid-template-columns:1fr}
+    #my-panel .card{min-width:0; max-width:none; width:100%}
+    #my-panel .card.editing{min-width:0}
+    .teamrow{flex-direction:column}
+    .sprow{flex-wrap:wrap}
+    .sprow .nm{width:auto; flex:1 1 90px}
+    .picker{width:96vw; max-height:92vh}
+    .picker .plist{grid-template-columns:1fr}
+    .ac-list{min-width:0; width:min(340px, 94vw)}
+    .battlebar{flex-wrap:wrap; gap:8px}
+    .slot > div[style*="display:flex"]{flex-wrap:wrap}
+    table.stats td, table.stats th{padding:1px 3px}
+    .dmg{margin-left:4px}
+    .speedbox h3{flex-wrap:wrap}
+    .footer-note{padding-bottom:14px}
+  }
 </style>
 </head>
 <body>
@@ -160,6 +193,7 @@
   <button data-action="save-team" id="btn-save-team">팀 저장</button>
   <button data-action="load-team" id="btn-load-team">팀 불러오기</button>
   <input type="file" id="team-file" accept=".json" style="display:none">
+  <button data-action="next-game" id="btn-next-game">다음 게임</button>
   <button data-action="reset-opp" class="danger" id="btn-reset-opp">상대 초기화</button>
 </header>
 
@@ -256,6 +290,10 @@ ko: {
   pasteHint:"포켓몬 쇼다운 팀빌더의 「Import/Export」 텍스트를 붙여넣으세요. 현재 팀을 대체합니다.",
   pasteGo:"가져오기", pasteNone:"가져올 포켓몬을 찾지 못했습니다. Showdown Export 형식인지 확인해주세요.",
   pasteDone:n=>`${n}마리 가져옴 ✓`, pasteWarn:"인식하지 못한 항목 (건너뜀):",
+  nextGame:"다음 게임", nextGameConfirm:"필드·랭크·벽·날씨만 초기화하고 양 팀은 유지할까요? (같은 상대와의 2·3차전)",
+  nextGameDone:"다음 게임 준비 완료 — 양 팀 유지됨",
+  matchupTitle:"🧩 타입 상성", matchupLegend:"⚔ 내 자속 → 상대 · 🛡 상대 자속 → 나 (최대 배율)",
+  exportBtn:"📤 Showdown 복사", exportTitle:"내 팀 — Showdown 텍스트", copyBtn:"복사", copiedToast:"클립보드에 복사됨 ✓",
 },
 en: {
   title:"Pokémon Battle Tracker", tabBattle:"⚔ Battle", tabTeam:"My Team", single:"Singles", double:"Doubles",
@@ -315,6 +353,10 @@ en: {
   pasteHint:"Paste the Import/Export text from Pokémon Showdown's teambuilder. Replaces the current team.",
   pasteGo:"Import", pasteNone:"No Pokémon found. Is this Showdown Export text?",
   pasteDone:n=>`Imported ${n} Pokémon ✓`, pasteWarn:"Not recognized (skipped):",
+  nextGame:"Next Game", nextGameConfirm:"Reset field, ranks, walls and weather but keep both teams? (game 2/3 of a set)",
+  nextGameDone:"Ready for the next game — both teams kept",
+  matchupTitle:"🧩 Type Matchup", matchupLegend:"⚔ my STAB → them · 🛡 their STAB → me (best multiplier)",
+  exportBtn:"📤 Copy as Showdown", exportTitle:"My Team — Showdown text", copyBtn:"Copy", copiedToast:"Copied to clipboard ✓",
 },
 ja: {
   title:"ポケモンバトルトラッカー", tabBattle:"⚔ バトル", tabTeam:"チーム管理", single:"シングル", double:"ダブル",
@@ -374,6 +416,10 @@ ja: {
   pasteHint:"ポケモンショーダウンのチームビルダーの Import/Export テキストを貼り付けてください。現在のチームを置き換えます。",
   pasteGo:"取り込む", pasteNone:"ポケモンが見つかりません。Showdown Export形式か確認してください。",
   pasteDone:n=>`${n}匹取り込みました ✓`, pasteWarn:"認識できなかった項目（スキップ）:",
+  nextGame:"次のゲーム", nextGameConfirm:"場・ランク・壁・天気のみリセットし、両チームは維持しますか？（同じ相手との2・3戦目）",
+  nextGameDone:"次のゲームの準備完了 — 両チーム維持",
+  matchupTitle:"🧩 タイプ相性", matchupLegend:"⚔ 自分のタイプ一致 → 相手 ・ 🛡 相手のタイプ一致 → 自分（最大倍率）",
+  exportBtn:"📤 Showdownコピー", exportTitle:"自分のチーム — Showdownテキスト", copyBtn:"コピー", copiedToast:"クリップボードにコピーしました ✓",
 },
 };
 const t = k => (L[lang][k] !== undefined ? L[lang][k] : L.ko[k]);
@@ -501,7 +547,7 @@ let state = load() || initialState();
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 function commit(){ save(); render(); }
 
-let ui = {editMy:null, movePicker:null, itemPicker:null, pasteImport:null, view:"battle"};   // transient UI state
+let ui = {editMy:null, movePicker:null, itemPicker:null, pasteImport:null, matchup:false, view:"battle"};   // transient UI state
 
 // ---------------- stats & damage ----------------
 const rankMul = r => r >= 0 ? (2+r)/2 : 2/(2-r);
@@ -575,9 +621,11 @@ function weatherMod(moveType){
   if(w === "rain"){ if(moveType === "Water") return 1.5; if(moveType === "Fire")  return 0.5; }
   return 1;
 }
-function weatherDefMul(cat, defTypes){
-  if(state.weather === "sand" && cat === "S" && defTypes.includes("Rock")) return 1.5;
-  if(state.weather === "snow" && cat === "P" && defTypes.includes("Ice"))  return 1.5;
+// keyed by the defense stat actually used (Psyshock hits Def, so sand's SpD boost
+// doesn't apply to it; snow's Def boost does)
+function weatherDefMul(defIdx, defTypes){
+  if(state.weather === "sand" && defIdx === 4 && defTypes.includes("Rock")) return 1.5;
+  if(state.weather === "snow" && defIdx === 2 && defTypes.includes("Ice"))  return 1.5;
   return 1;
 }
 // ---- field-wide abilities (auto-applied) & screens ----
@@ -611,14 +659,13 @@ function abilityPowerMul(m, atkSide, fa){
   if(m.type === "Steel") fa[atkSide].forEach(a => { if(a === AB.steely) mul *= 1.5; });
   return mul;
 }
-// Ruin quartet: ×0.75 on everyone else's stat; holders of the same ability are immune
-function ruinAtkMul(cat, atkAbility, fa){
-  const key = cat === "P" ? AB.tablets : AB.vessel;
-  return fa.all.includes(key) && atkAbility !== key ? 0.75 : 1;
-}
-function ruinDefMul(cat, defAbility, fa){
-  const key = cat === "P" ? AB.sword : AB.beads;
-  return fa.all.includes(key) && defAbility !== key ? 0.75 : 1;
+// Ruin quartet: ×0.75 on everyone else's stat; holders of the same ability are immune.
+// Keyed by the stat index actually used, so Body Press (attacks with Def) is dampened
+// by Sword of Ruin and Foul Play (target's Atk) by Tablets of Ruin.
+const RUIN_BY_STAT = {1:AB.tablets, 2:AB.sword, 3:AB.vessel, 4:AB.beads};
+function ruinStatMul(statIdx, ownerAbility, fa){
+  const key = RUIN_BY_STAT[statIdx];
+  return key && fa.all.includes(key) && ownerAbility !== key ? 0.75 : 1;
 }
 // Reflect / Light Screen / Aurora Veil on the defending side (one reduction max)
 function screenMul(defSide, cat){
@@ -632,6 +679,161 @@ function abilMarks(raMul, rdMul, scMul, atkIdx, defIdx){
   if(rdMul < 1) s += ` <span class="small" style="color:var(--warn)">${t("ruinMark")(SS(defIdx))}</span>`;
   if(scMul < 1) s += ` <span class="small muted">${t("screenMark")}</span>`;
   return s;
+}
+
+// ---- special-mechanic moves (resolved by English name -> id at startup) ----
+const MOVE_SPECIAL = {};
+{
+  const byFlat = {};
+  D.moves.forEach(m => byFlat[m.en.toLowerCase().replace(/[^a-z0-9]/g, "")] = m.id);
+  const tag = (k, ...names) => names.forEach(n => { if(byFlat[n]) MOVE_SPECIAL[byFlat[n]] = k; });
+  tag("targetdef",   "psyshock", "psystrike", "secretsword");   // special, hits Defense
+  tag("bodypress",   "bodypress");                              // attacks with own Def
+  tag("foulplay",    "foulplay");                               // uses target's Atk + rank
+  tag("knockoff",    "knockoff");
+  tag("acrobatics",  "acrobatics");
+  tag("facade",      "facade");
+  tag("weatherball", "weatherball");
+  tag("terrainpulse","terrainpulse");
+  tag("risingvoltage","risingvoltage");
+  tag("expandingforce","expandingforce");
+  tag("gyroball",    "gyroball");
+  tag("electroball", "electroball");
+  tag("weightlow",   "lowkick", "grassknot");                   // target weight
+  tag("weightheavy", "heavyslam", "heatcrash");                 // weight ratio
+  tag("storedpower", "storedpower", "powertrip");               // 20 + 20 per boost
+  tag("hex",         "hex");                                    // ×2 vs statused (burn tracked)
+}
+const WEATHERBALL_TYPE = {sun:"Fire", rain:"Water", sand:"Rock", snow:"Ice"};
+const TERRAINPULSE_TYPE = {electric:"Electric", grassy:"Grass", psychic:"Psychic", misty:"Fairy"};
+
+// raw stat of the pokemon in slot S on `side` (opp side depends on the scenario)
+function unitStat(side, S, i, scen){
+  const mem = (side === "my" ? state.myTeam : state.oppTeam)[S.i];
+  const dex = S.mega ?? mem.dex;
+  return side === "my" ? myStat(mem, i, dex) : oppStat(dex, i, scen);
+}
+function effSpeed(side, S, scen){
+  const mem = (side === "my" ? state.myTeam : state.oppTeam)[S.i];
+  let v = effStat(unitStat(side, S, 5, scen), S.ranks[4], mem.item, 5, D.pokedex[mem.dex].ko);
+  if(state.tailwind[side]) v *= 2;
+  return v;
+}
+function isSpreadMove(m, atkGrounded){
+  return m.spread || (MOVE_SPECIAL[m.id] === "expandingforce" && state.terrain === "psychic" && atkGrounded);
+}
+
+// one damage line: attacker (side sa, slot A) uses m on target (side st, slot T);
+// scen ("min"/"max") applies to whichever stats come from the opponent's side.
+// Returns null when the power can't be resolved (unknown weight etc.).
+function computeDamage(sa, A, m, st, T, scen, spread){
+  const aMem = (sa === "my" ? state.myTeam : state.oppTeam)[A.i];
+  const tMem = (st === "my" ? state.myTeam : state.oppTeam)[T.i];
+  const aP = D.pokedex[A.mega ?? aMem.dex];
+  const tP = D.pokedex[T.mega ?? tMem.dex];
+  const fa = fieldAbil();
+  const sp = MOVE_SPECIAL[m.id];
+  const aG = isGrounded(aP.types, aMem.item);
+  const tG = isGrounded(tP.types, tMem.item);
+
+  // effective type
+  let type = m.type;
+  if(sp === "weatherball" && state.weather !== "none") type = WEATHERBALL_TYPE[state.weather];
+  if(sp === "terrainpulse" && state.terrain !== "none" && aG) type = TERRAINPULSE_TYPE[state.terrain];
+
+  // stat indices (and whose attack stat)
+  let atkIdx = m.cat === "P" ? 1 : 3, atkOwner = "self";
+  if(sp === "bodypress") atkIdx = 2;
+  if(sp === "foulplay"){ atkIdx = 1; atkOwner = "target"; }
+  let defIdx = m.cat === "P" ? 2 : 4;
+  if(sp === "targetdef") defIdx = 2;
+
+  // resolved base power
+  let power = m.power;
+  const wA = aP.wt || 0, wT = tP.wt || 0;
+  if(sp === "acrobatics" && aMem.item === "없음") power = 110;
+  if(sp === "facade" && A.burn) power = 140;
+  if(sp === "knockoff" && tMem.item !== "없음") power = 97;
+  if(sp === "weatherball" && state.weather !== "none") power = 100;
+  if(sp === "terrainpulse" && state.terrain !== "none" && aG) power = 100;
+  if(sp === "risingvoltage" && state.terrain === "electric" && tG) power = 140;
+  if(sp === "expandingforce" && state.terrain === "psychic" && aG) power = 120;
+  if(sp === "hex" && T.burn) power = 130;
+  if(sp === "storedpower") power = 20 + 20 * A.ranks.reduce((a, r) => a + Math.max(0, r), 0);
+  if(sp === "weightlow"){
+    if(!wT) return null;
+    power = wT >= 200 ? 120 : wT >= 100 ? 100 : wT >= 50 ? 80 : wT >= 25 ? 60 : wT >= 10 ? 40 : 20;
+  }
+  if(sp === "weightheavy"){
+    if(!wA || !wT) return null;
+    const r = wA / wT;
+    power = r >= 5 ? 120 : r >= 4 ? 100 : r >= 3 ? 80 : r >= 2 ? 60 : 40;
+  }
+  if(sp === "gyroball" || sp === "electroball"){
+    const aS = effSpeed(sa, A, scen), tS = effSpeed(st, T, scen);
+    if(sp === "gyroball") power = aS > 0 ? Math.min(150, Math.floor(25 * tS / aS) + 1) : 1;
+    else { const r = tS > 0 ? aS / tS : 4; power = r >= 4 ? 150 : r >= 3 ? 120 : r >= 2 ? 80 : r >= 1 ? 60 : 40; }
+  }
+  if(power <= 0) return null;
+
+  const e = typeEffFor(type, tP.types, tMem.item);
+  if(e === 0) return {e:0};
+
+  // attack stat (self or target's, per Foul Play)
+  const oSide = atkOwner === "self" ? sa : st;
+  const oSlot = atkOwner === "self" ? A : T;
+  const oMem  = atkOwner === "self" ? aMem : tMem;
+  const raMul = ruinStatMul(atkIdx, slotAbility(oSide, oSlot), fa);
+  const atk = pokeRound(effStat(unitStat(oSide, oSlot, atkIdx, scen), oSlot.ranks[atkIdx-1], oMem.item, atkIdx, D.pokedex[oMem.dex].ko) * raMul);
+
+  // defense stat
+  const dmul = weatherDefMul(defIdx, tP.types);
+  const rdMul = ruinStatMul(defIdx, slotAbility(st, T), fa);
+  const def = pokeRound(Math.floor(effStat(unitStat(st, T, defIdx, scen), T.ranks[defIdx-1], tMem.item, defIdx, D.pokedex[tMem.dex].ko) * dmul) * rdMul);
+
+  const abilMul = abilityPowerMul({type, cat:m.cat}, sa, fa);
+  const finalPower = adjPower({id:m.id, power, type, cat:m.cat}, aG, tG, aMem.item, abilMul);
+  const dId = identOf(tMem.item);
+  const berry = RESIST_BERRY[dId] === type && (e > 1 || dId === "chilan-berry");
+  const wm = weatherMod(type);
+  const scMul = screenMul(st, m.cat);
+  const burn = A.burn && m.cat === "P" && sp !== "facade";
+  const hp = unitStat(st, T, 0, scen);
+  const [lo, hi] = calcDamage(finalPower, atk, def, {stab:aP.types.includes(type), eff:e, spread, wmod:wm, berry, burn, screen:scMul,
+    lifeOrb:identOf(aMem.item) === "life-orb", expertBelt:identOf(aMem.item) === "expert-belt"});
+  return {e, lo, hi, hp, atk, def, power, type, wm, finalPower, dmul, berry, raMul, rdMul, scMul, atkIdx, defIdx};
+}
+
+// renders all damage lines for one move of a fielded attacker
+function moveDamageHtml(sa, slot, moveId){
+  const m = MOVES_BY_ID[moveId];
+  if(!m) return "";
+  const noCalc = sa === "my" ? t("statusExcluded") : t("statusNoPower");
+  if(m.cat === "X") return `<div class="dmg muted">${noCalc}</div>`;
+  const st = sa === "my" ? "opp" : "my";
+  const targets = fielded(st);
+  if(!targets.length) return `<div class="dmg muted">${t(st === "opp" ? "oppFieldEmpty" : "myFieldEmpty")}</div>`;
+  if(!MOVE_SPECIAL[m.id] && m.power <= 0) return `<div class="dmg muted">${noCalc}</div>`;
+  const aMem = (sa === "my" ? state.myTeam : state.oppTeam)[slot.i];
+  const aP = D.pokedex[slot.mega ?? aMem.dex];
+  const spread = state.mode === "double" && targets.length > 1 && isSpreadMove(m, isGrounded(aP.types, aMem.item));
+  return targets.map(({slot:T}) => {
+    const tMem = (st === "my" ? state.myTeam : state.oppTeam)[T.i];
+    const tP = D.pokedex[T.mega ?? tMem.dex];
+    const tgt = `→ <span class="tgt">${esc(dexName(tP))}</span>`;
+    const rMin = computeDamage(sa, slot, m, st, T, "min", spread);
+    const rMax = computeDamage(sa, slot, m, st, T, "max", spread);
+    if(!rMin || !rMax) return `<div class="dmg">${tgt} <span class="muted">${t("statusNoPower")}</span></div>`;
+    if(rMin.e === 0) return `<div class="dmg">${tgt} ${effChip(0)} <span class="muted">${t("noEffect")}</span></div>`;
+    const line = (r, lbl) => `${lbl}<span class="pct">${pct(r.lo,r.hp)}~${pct(r.hi,r.hp)}%</span> ${koLabel(pct(r.lo,r.hp), pct(r.hi,r.hp))}`;
+    const same = rMin.lo === rMax.lo && rMin.hi === rMax.hi && rMin.hp === rMax.hp;
+    const parts = same ? line(rMax, "")
+      : `${line(rMin, t("min") + " ")} <span class="muted">·</span> ${line(rMax, t("max") + " ")}`;
+    const typeMark = rMax.type !== m.type
+      ? ` <span class="chip" style="background:${TYPE_COLORS[rMax.type]}">${typeName(rMax.type)}</span>` : "";
+    return `<div class="dmg">${tgt}${typeMark} ${effChip(rMax.e)} ${parts}
+      ${spread ? `<span class="muted small">${t("spreadNote")}</span>` : ""}${condMarks(rMax.wm, rMax.finalPower, rMax.power, rMax.dmul, rMax.e, rMax.berry)}${abilMarks(rMax.raMul, rMax.rdMul, rMax.scMul, rMax.atkIdx, rMax.defIdx)}</div>`;
+  }).join("");
 }
 // returns [min,max] raw damage
 function calcDamage(power, atk, def, {stab=false, eff=1, spread=false, burn=false, lifeOrb=false, expertBelt=false, berry=false, wmod=1, screen=1}){
@@ -721,96 +923,6 @@ function moveLine(m){
     <span class="muted small">${m.power ? t("power") + " " + m.power : ""}${m.pri > 0 ? t("priPlus")(m.pri) : ""}</span>`;
 }
 
-// ---------------- damage rendering ----------------
-// my fielded mon -> all fielded opp targets
-function myMoveDamageHtml(slot, moveId){
-  const m = MOVES_BY_ID[moveId];
-  if(!m) return "";
-  if(m.cat === "X" || m.power <= 0)
-    return `<div class="dmg muted">${t("statusExcluded")}</div>`;
-  const mon = state.myTeam[slot.i];
-  const dex = slot.mega ?? mon.dex;
-  const p = D.pokedex[dex];
-  const fa = fieldAbil();
-  const atkIdx = m.cat === "P" ? 1 : 3;
-  const raMul = ruinAtkMul(m.cat, slotAbility("my", slot), fa);
-  const atk = pokeRound(effStat(myStat(mon, atkIdx, dex), slot.ranks[atkIdx-1], mon.item, atkIdx, D.pokedex[mon.dex].ko) * raMul);
-  const stab = p.types.includes(m.type);
-  const targets = fielded("opp");
-  if(!targets.length) return `<div class="dmg muted">${t("oppFieldEmpty")}</div>`;
-  const spread = state.mode === "double" && m.spread && targets.length > 1;
-  const atkG = isGrounded(p.types, mon.item);
-  const wm = weatherMod(m.type);
-  const abilMul = abilityPowerMul(m, "my", fa);
-  const scMul = screenMul("opp", m.cat);
-  return targets.map(({slot:ts}) => {
-    const opp = state.oppTeam[ts.i];
-    const tdex = ts.mega ?? opp.dex;
-    const tp = D.pokedex[tdex];
-    const e = typeEffFor(m.type, tp.types, opp.item);
-    const dId = identOf(opp.item);
-    const berry = RESIST_BERRY[dId] === m.type && (e > 1 || dId === "chilan-berry");
-    const power = adjPower(m, atkG, isGrounded(tp.types, opp.item), mon.item, abilMul);
-    const dmul = weatherDefMul(m.cat, tp.types);
-    const defIdx = m.cat === "P" ? 2 : 4;
-    const rdMul = ruinDefMul(m.cat, slotAbility("opp", ts), fa);
-    const lines = ["min","max"].map(scen => {
-      const def = pokeRound(Math.floor(effStat(oppStat(tdex, defIdx, scen), ts.ranks[defIdx-1], opp.item, defIdx) * dmul) * rdMul);
-      const hp = oppStat(tdex, 0, scen);
-      const [lo,hi] = calcDamage(power, atk, def, {stab, eff:e, spread, wmod:wm, berry, burn:slot.burn && m.cat==="P", screen:scMul,
-        lifeOrb:identOf(mon.item)==="life-orb", expertBelt:identOf(mon.item)==="expert-belt"});
-      if(e === 0) return null;
-      return `${scen === "min" ? t("min") : t("max")} <span class="pct">${pct(lo,hp)}~${pct(hi,hp)}%</span> ${koLabel(pct(lo,hp), pct(hi,hp))}`;
-    });
-    return `<div class="dmg">→ <span class="tgt">${esc(dexName(tp))}</span> ${effChip(e)}
-      ${e === 0 ? `<span class="muted">${t("noEffect")}</span>` : lines.join(` <span class="muted">·</span> `)}
-      ${spread ? `<span class="muted small">${t("spreadNote")}</span>` : ""}${condMarks(wm, power, m.power, dmul, e, berry)}${e === 0 ? "" : abilMarks(raMul, rdMul, scMul, atkIdx, defIdx)}</div>`;
-  }).join("");
-}
-// opp fielded mon's potential move -> all my fielded targets
-function oppMoveDamageHtml(slot, moveId){
-  const m = MOVES_BY_ID[moveId];
-  if(!m) return "";
-  if(m.cat === "X" || m.power <= 0) return `<div class="dmg muted">${t("statusNoPower")}</div>`;
-  const opp = state.oppTeam[slot.i];
-  const dex = slot.mega ?? opp.dex;
-  const p = D.pokedex[dex];
-  const fa = fieldAbil();
-  const stab = p.types.includes(m.type);
-  const atkIdx = m.cat === "P" ? 1 : 3;
-  const targets = fielded("my");
-  if(!targets.length) return `<div class="dmg muted">${t("myFieldEmpty")}</div>`;
-  const spread = state.mode === "double" && m.spread && targets.length > 1;
-  const atkG = isGrounded(p.types, opp.item);
-  const wm = weatherMod(m.type);
-  const raMul = ruinAtkMul(m.cat, slotAbility("opp", slot), fa);
-  const abilMul = abilityPowerMul(m, "opp", fa);
-  const scMul = screenMul("my", m.cat);
-  return targets.map(({slot:ms}) => {
-    const mine = state.myTeam[ms.i];
-    const mdex = ms.mega ?? mine.dex;
-    const mp = D.pokedex[mdex];
-    const e = typeEffFor(m.type, mp.types, mine.item);
-    const dId = identOf(mine.item);
-    const berry = RESIST_BERRY[dId] === m.type && (e > 1 || dId === "chilan-berry");
-    const power = adjPower(m, atkG, isGrounded(mp.types, mine.item), opp.item, abilMul);
-    const dmul = weatherDefMul(m.cat, mp.types);
-    const defIdx = m.cat === "P" ? 2 : 4;
-    const rdMul = ruinDefMul(m.cat, slotAbility("my", ms), fa);
-    const def = pokeRound(Math.floor(effStat(myStat(mine, defIdx, mdex), ms.ranks[defIdx-1], mine.item, defIdx) * dmul) * rdMul);
-    const hp = myStat(mine, 0, mdex);
-    if(e === 0) return `<div class="dmg">→ <span class="tgt">${esc(dexName(mp))}</span> ${effChip(0)} <span class="muted">${t("noEffect")}</span></div>`;
-    const parts = ["min","max"].map(scen => {
-      const atk = pokeRound(effStat(oppStat(dex, atkIdx, scen), slot.ranks[atkIdx-1], opp.item, atkIdx, D.pokedex[opp.dex].ko) * raMul);
-      const [lo,hi] = calcDamage(power, atk, def, {stab, eff:e, spread, wmod:wm, berry, burn:slot.burn && m.cat==="P", screen:scMul,
-        lifeOrb:identOf(opp.item)==="life-orb", expertBelt:identOf(opp.item)==="expert-belt"});
-      return `${scen === "min" ? t("min") : t("max")} <span class="pct">${pct(lo,hp)}~${pct(hi,hp)}%</span> ${koLabel(pct(lo,hp), pct(hi,hp))}`;
-    });
-    return `<div class="dmg">→ <span class="tgt">${esc(dexName(mp))}</span> ${effChip(e)} ${parts.join(` <span class="muted">·</span> `)}
-      ${spread ? `<span class="muted small">${t("spreadNote")}</span>` : ""}${condMarks(wm, power, m.power, dmul, e, berry)}${abilMarks(raMul, rdMul, scMul, atkIdx, defIdx)}</div>`;
-  }).join("");
-}
-
 // ---------------- field helpers ----------------
 function slotsFor(side){ return state.mode === "single" ? [0] : [0,1]; }
 function fielded(side){
@@ -851,7 +963,7 @@ function renderMySlot(k){
   const movesHtml = mon.moves.length
     ? mon.moves.map(id => {
         const m = MOVES_BY_ID[id];
-        return m ? `<div class="mv"><div class="mvhead">${moveLine(m)}</div>${myMoveDamageHtml(s, id)}</div>` : "";
+        return m ? `<div class="mv"><div class="mvhead">${moveLine(m)}</div>${moveDamageHtml("my", s, id)}</div>` : "";
       }).join("")
     : `<div class="mv muted small">${t("noMovesMy")}</div>`;
   return `<div class="slot filled">
@@ -896,7 +1008,7 @@ function renderOppSlot(k){
           <div class="mvhead">
             <button class="seen ${mv.seen ? "yes" : ""}" title="${t("seenTitle")}" data-action="seen" data-oi="${s.i}" data-mi="${mi}">${mv.seen ? "✔" : "?"}</button>
             ${moveLine(m)} ${mv.seen ? `<span class="small" style="color:var(--ok)">${t("seen")}</span>` : `<span class="small muted">${t("unseen")}</span>`}
-          </div>${oppMoveDamageHtml(s, mv.id)}</div>`;
+          </div>${moveDamageHtml("opp", s, mv.id)}</div>`;
       }).join("")
     : `<div class="mv muted small">${t("noExpMoves")}</div>`;
   return `<div class="slot filled">
@@ -1041,7 +1153,8 @@ function renderMyPanel(){
     : "";
   document.getElementById("my-panel").innerHTML =
     `<h2>${t("myTeamTitle")} <span class="count">${state.myTeam.length}/6 · ${t("myTeamSub")}</span>
-      <button class="small" data-action="paste" data-side="my" style="margin-left:auto">${t("pasteBtn")}</button></h2>
+      <button class="small" data-action="paste" data-side="my" style="margin-left:auto">${t("pasteBtn")}</button>
+      <button class="small" data-action="export-team">${t("exportBtn")}</button></h2>
     <div class="teamrow">${cards}${addBox}</div>`;
 }
 
@@ -1081,6 +1194,25 @@ function renderOppPanel(){
       <button class="small" data-action="paste" data-side="opp" style="margin-left:auto">${t("pasteBtn")}</button></h2>${cards}${addBox}`;
 }
 
+// ---------------- render: matchup grid (team preview aid) ----------------
+function renderMatchup(){
+  if(!state.myTeam.length || !state.oppTeam.length) return "";
+  const best = (atkTypes, defTypes) => Math.max(...atkTypes.map(ty => typeEff(ty, defTypes)));
+  const head = state.oppTeam.map(o => `<th>${sprImg(o.dex, "bench")}</th>`).join("");
+  const rows = state.myTeam.map(mine => {
+    const mp = D.pokedex[mine.dex];
+    const cells = state.oppTeam.map(o => {
+      const op = D.pokedex[o.dex];
+      return `<td>⚔${effChip(best(mp.types, op.types))}<br>🛡${effChip(best(op.types, mp.types))}</td>`;
+    }).join("");
+    return `<tr><th>${sprImg(mine.dex, "bench")}</th>${cells}</tr>`;
+  }).join("");
+  return `<div class="speedbox"><h3><button class="small ${ui.matchup ? "on" : ""}" data-action="matchup">${t("matchupTitle")} ${ui.matchup ? "▾" : "▸"}</button>
+      ${ui.matchup ? `<span class="small muted">${t("matchupLegend")}</span>` : ""}</h3>
+    ${ui.matchup ? `<div style="overflow-x:auto"><table class="mgrid"><tr><th></th>${head}</tr>${rows}</table></div>` : ""}
+  </div>`;
+}
+
 // ---------------- render: field column ----------------
 function renderField(){
   const single = state.mode === "single";
@@ -1098,6 +1230,7 @@ function renderField(){
   document.getElementById("field-col").innerHTML = `
     <div class="fieldside opp"><div class="sidehead"><span class="t">${t("oppField")}</span>${wallBtns("opp")}${benchHtml("opp")}</div>
       <div class="slots ${single ? "single" : ""}">${oppSlots}</div></div>
+    ${renderMatchup()}
     ${battleBar}
     ${renderSpeed()}
     <div class="fieldside my"><div class="sidehead"><span class="t">${t("myField")}</span>${wallBtns("my")}${benchHtml("my")}</div>
@@ -1140,18 +1273,22 @@ function renderItemPicker(root){
   }
 }
 function renderPasteModal(root){
+  const mode = ui.pasteImport;   // "my" | "opp" | "export"
+  const title = mode === "export" ? t("exportTitle") : mode === "my" ? t("pasteTitleMy") : t("pasteTitleOpp");
+  const body = mode === "export"
+    ? `<textarea id="paste-ta" spellcheck="false">${esc(showdownExportText())}</textarea>
+       <div><button class="primary" data-action="export-copy">${t("copyBtn")}</button></div>`
+    : `<div class="small muted">${t("pasteHint")}</div>
+       <textarea id="paste-ta" spellcheck="false" placeholder="Garchomp @ Focus Sash&#10;Ability: Rough Skin&#10;EVs: 4 HP / 252 Atk / 252 Spe&#10;Jolly Nature&#10;- Earthquake&#10;- Dragon Claw&#10;..."></textarea>
+       <div><button class="primary" data-action="paste-go">${t("pasteGo")}</button></div>`;
   root.innerHTML = `<div id="modal-bg"><div class="picker" style="width:min(560px,94vw)">
-    <div class="phead"><span class="t">${ui.pasteImport === "my" ? t("pasteTitleMy") : t("pasteTitleOpp")}</span>
+    <div class="phead"><span class="t">${title}</span>
       <span style="flex:1"></span>
       <button data-action="close-picker">${t("close")}</button></div>
-    <div style="padding:10px 14px; display:flex; flex-direction:column; gap:8px">
-      <div class="small muted">${t("pasteHint")}</div>
-      <textarea id="paste-ta" spellcheck="false" placeholder="Garchomp @ Focus Sash&#10;Ability: Rough Skin&#10;EVs: 4 HP / 252 Atk / 252 Spe&#10;Jolly Nature&#10;- Earthquake&#10;- Dragon Claw&#10;..."></textarea>
-      <div><button class="primary" data-action="paste-go">${t("pasteGo")}</button></div>
-    </div>
+    <div style="padding:10px 14px; display:flex; flex-direction:column; gap:8px">${body}</div>
   </div></div>`;
   const ta = root.querySelector && root.querySelector("#paste-ta");
-  if(ta) ta.focus();
+  if(ta && mode !== "export") ta.focus();
 }
 function renderModal(){
   const root = document.getElementById("modal-root");
@@ -1280,6 +1417,18 @@ function onPick(ctx, v){
 }
 
 // ---------------- events ----------------
+// game 2/3 of a Bo3: back to team preview, but everything learned about the
+// opponent (team, items, abilities, seen moves, speed tiers) is kept
+function nextGame(){
+  state.field.my = [null, null];
+  state.field.opp = [null, null];
+  state.tailwind = {my:false, opp:false};
+  state.screens = emptyScreens();
+  state.weather = "none";
+  state.terrain = "none";
+  commit();
+  toast(t("nextGameDone"));
+}
 function removeFromTeam(side, idx){
   const team = side === "my" ? state.myTeam : state.oppTeam;
   team.splice(idx, 1);
@@ -1332,9 +1481,21 @@ document.addEventListener("click", e => {
     case "pick-moves": ui.movePicker = +d.oi; render(); break;
     case "pick-item": ui.itemPicker = {side:d.side, idx:+d.i}; render(); break;
     case "paste": ui.pasteImport = d.side; render(); break;
+    case "export-team": ui.pasteImport = "export"; render(); break;
     case "paste-go": {
       const ta = document.getElementById("paste-ta");
-      if(ta && ui.pasteImport) applyImport(ui.pasteImport, ta.value);
+      if(ta && ui.pasteImport && ui.pasteImport !== "export") applyImport(ui.pasteImport, ta.value);
+      break;
+    }
+    case "export-copy": {
+      const ta = document.getElementById("paste-ta");
+      if(ta){
+        ta.select();
+        let ok = false;
+        try{ ok = document.execCommand("copy"); }catch(err){}
+        if(!ok && navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(() => {});
+        toast(t("copiedToast"));
+      }
       break;
     }
     case "close-picker": ui.movePicker = null; ui.itemPicker = null; ui.pasteImport = null; render(); break;
@@ -1344,6 +1505,10 @@ document.addEventListener("click", e => {
       commit(); break;
     case "tw": state.tailwind[d.side] = !state.tailwind[d.side]; commit(); break;
     case "screen": state.screens[d.side][d.w] = !state.screens[d.side][d.w]; commit(); break;
+    case "matchup": ui.matchup = !ui.matchup; render(); break;
+    case "next-game":
+      if(confirm(t("nextGameConfirm"))) nextGame();
+      break;
     case "bench": {
       const side = d.side, i = +d.i;
       if(isFielded(side, i)) break;
@@ -1580,6 +1745,26 @@ function applyImport(side, text){
   toast(t("pasteDone")(made.length));
   if(warns.length) alert(t("pasteWarn") + "\n" + [...new Set(warns)].join("\n"));
 }
+// ---- Showdown text export (round-trips with the paste importer) ----
+const STAT_SD = ["HP","Atk","Def","SpA","SpD","Spe"];
+function showdownExportText(){
+  return state.myTeam.map(mon => {
+    const p = D.pokedex[mon.dex];
+    const species = p.form === "default" ? p.en
+      : (p.sid || "").split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join("-");
+    const it = ITEM_I18N[mon.item];
+    const lines = [species + (it ? " @ " + it.en : "")];
+    if(mon.ability) lines.push("Ability: " + ((D.abilNames[mon.ability] || {}).en || mon.ability));
+    lines.push("Level: 50");
+    const evs = mon.evs.map((v, i) => v > 0 ? `${v} ${STAT_SD[i]}` : null).filter(Boolean);
+    if(evs.length) lines.push("EVs: " + evs.join(" / "));
+    const ivs = mon.ivs.map((v, i) => v < 31 ? `${v} ${STAT_SD[i]}` : null).filter(Boolean);
+    if(ivs.length) lines.push("IVs: " + ivs.join(" / "));
+    lines.push(mon.nature + " Nature");
+    mon.moves.forEach(id => { const m = MOVES_BY_ID[id]; if(m) lines.push("- " + m.en); });
+    return lines.join("\n");
+  }).join("\n\n");
+}
 document.getElementById("team-file").addEventListener("change", e => {
   const f = e.target.files[0]; if(!f) return;
   const rd = new FileReader();
@@ -1633,6 +1818,7 @@ function renderChrome(){
   document.getElementById("lbl-autosave").textContent = t("autosave");
   document.getElementById("btn-save-team").textContent = t("saveTeam");
   document.getElementById("btn-load-team").textContent = t("loadTeam");
+  document.getElementById("btn-next-game").textContent = t("nextGame");
   document.getElementById("btn-reset-opp").textContent = t("resetOpp");
   document.getElementById("footer-note").textContent = t("footer");
   document.querySelectorAll("#lang-seg button").forEach(b =>
@@ -1652,6 +1838,11 @@ function render(){
   bindSearchInputs();
 }
 render();
+
+// offline support when served over http(s) (GitHub Pages); no-op for file://
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
 </script>
 </body>
 </html>
