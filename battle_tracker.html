@@ -199,7 +199,7 @@ const L = {
 ko: {
   title:"포켓몬 배틀 트래커", tabBattle:"⚔ 배틀", tabTeam:"팀 관리", single:"싱글", double:"더블",
   lv:"Lv.50 기준", autosave:"자동 저장됨", saveTeam:"팀 저장", loadTeam:"팀 불러오기", resetOpp:"상대 초기화",
-  footer:"가정: 레벨 50 · 상대 개체값 31 · 무보정 = 노력치 0/성격 무보정, 풀보정 = 노력치 252/성격 보정 · 지닌물건 보정(스카프/생명의구슬/달인의띠/힘의머리띠/박식안경/타입강화 ×1.2/반감열매/검은철구/전기구슬) 자동 적용 · 필드 효과는 비행타입이 아닌(또는 검은철구) 포켓몬에게 적용 (부유 특성 미반영) · 특성은 기록용 (위력 계산 미반영) · 테라스탈 · 급소 미반영",
+  footer:"가정: 레벨 50 · 상대 개체값 31 · 무보정 = 노력치 0/성격 무보정, 풀보정 = 노력치 252/성격 보정 · 지닌물건 보정(스카프/생명의구슬/달인의띠/힘의머리띠/박식안경/타입강화 ×1.2/반감열매/검은철구/전기구슬) 자동 적용 · 벽은 싱글 ×0.5, 더블 ×2/3 (틈새포착 미반영) · 특성은 페어리오라/다크오라/오라브레이크/재앙 4종/강철정신만 자동 반영 (그 외 기록용) · 필드 효과는 비행타입이 아닌(또는 검은철구) 포켓몬에게 적용 (부유 특성 미반영) · 테라스탈 · 급소 미반영",
   none:"없음", min:"무보정", max:"풀보정", natNeutral:"무보정",
   weathers:{none:"없음", sun:"쾌청 ☀", rain:"비 🌧", sand:"모래바람 🌪", snow:"설경 ❄"},
   terrains:{none:"없음", electric:"일렉트릭필드", grassy:"그래스필드", psychic:"사이코필드", misty:"미스트필드"},
@@ -248,11 +248,13 @@ ko: {
     "big-root":"흡수량 ×1.3", "light-clay":"벽 8턴", "heat-rock":"쾌청 8턴", "damp-rock":"비 8턴",
     "smooth-rock":"모래 8턴", "icy-rock":"설경 8턴", "metronome":"연속 사용 강화", "shed-shell":"교체 보장"},
   typeBoost:tn=>`${tn} ×1.2`, berryResist:tn=>`${tn} 약점 반감`, berryChilan:tn=>`${tn} 반감`,
+  reflect:"리플렉터", lightScreen:"빛의장막", auroraVeil:"오로라베일",
+  ruinMark:s=>`재앙 ${s}↓`, screenMark:"벽 반감",
 },
 en: {
   title:"Pokémon Battle Tracker", tabBattle:"⚔ Battle", tabTeam:"My Team", single:"Singles", double:"Doubles",
   lv:"Lv. 50", autosave:"Auto-saved", saveTeam:"Save Team", loadTeam:"Load Team", resetOpp:"Reset Opponent",
-  footer:"Assumptions: Lv. 50 · opponent IVs 31 · Min = 0 EVs/neutral nature, Max = 252 EVs/+nature · item modifiers (Choice Scarf/Life Orb/Expert Belt/Muscle Band/Wise Glasses/type boosters ×1.2/resist berries/Iron Ball/Light Ball) applied automatically · terrain affects grounded Pokémon (non-Flying, or holding Iron Ball; Levitate not modeled) · abilities are notes only (not in the damage math) · Terastal and critical hits not modeled",
+  footer:"Assumptions: Lv. 50 · opponent IVs 31 · Min = 0 EVs/neutral nature, Max = 252 EVs/+nature · item modifiers (Choice Scarf/Life Orb/Expert Belt/Muscle Band/Wise Glasses/type boosters ×1.2/resist berries/Iron Ball/Light Ball) applied automatically · screens ×0.5 in singles, ×2/3 in doubles (Infiltrator not modeled) · auto-applied abilities: Fairy/Dark Aura, Aura Break, the four Ruin abilities, Steely Spirit (others are notes only) · terrain affects grounded Pokémon (non-Flying, or holding Iron Ball; Levitate not modeled) · Terastal and critical hits not modeled",
   none:"None", min:"0 EV", max:"252+", natNeutral:"neutral",
   weathers:{none:"None", sun:"Sun ☀", rain:"Rain 🌧", sand:"Sandstorm 🌪", snow:"Snow ❄"},
   terrains:{none:"None", electric:"Electric Terrain", grassy:"Grassy Terrain", psychic:"Psychic Terrain", misty:"Misty Terrain"},
@@ -301,11 +303,13 @@ en: {
     "big-root":"Drain ×1.3", "light-clay":"Screens 8 turns", "heat-rock":"Sun 8 turns", "damp-rock":"Rain 8 turns",
     "smooth-rock":"Sand 8 turns", "icy-rock":"Snow 8 turns", "metronome":"Repeated move boost", "shed-shell":"Always switch out"},
   typeBoost:tn=>`${tn} ×1.2`, berryResist:tn=>`Halves SE ${tn}`, berryChilan:tn=>`Halves ${tn}`,
+  reflect:"Reflect", lightScreen:"Light Screen", auroraVeil:"Aurora Veil",
+  ruinMark:s=>`Ruin ${s}↓`, screenMark:"Screened",
 },
 ja: {
   title:"ポケモンバトルトラッカー", tabBattle:"⚔ バトル", tabTeam:"チーム管理", single:"シングル", double:"ダブル",
   lv:"Lv.50基準", autosave:"自動保存", saveTeam:"チーム保存", loadTeam:"チーム読み込み", resetOpp:"相手リセット",
-  footer:"前提: レベル50・相手の個体値31・無振り=努力値0/性格補正なし、特化=努力値252/性格補正あり・持ち物補正（こだわりスカーフ/いのちのたま/たつじんのおび/ちからのハチマキ/ものしりメガネ/タイプ強化×1.2/半減きのみ/くろいてっきゅう/でんきだま）を自動適用・フィールド効果はひこうタイプ以外（またはくろいてっきゅう所持）に適用（ふゆうは未対応）・特性はメモ用（計算未反映）・テラスタル/急所は未対応",
+  footer:"前提: レベル50・相手の個体値31・無振り=努力値0/性格補正なし、特化=努力値252/性格補正あり・持ち物補正（こだわりスカーフ/いのちのたま/たつじんのおび/ちからのハチマキ/ものしりメガネ/タイプ強化×1.2/半減きのみ/くろいてっきゅう/でんきだま）を自動適用・壁はシングル×0.5、ダブル×2/3（すりぬけ未対応）・特性はフェアリーオーラ/ダークオーラ/オーラブレイク/災い4種/はがねのせいしんのみ自動反映（他はメモ用）・フィールド効果はひこうタイプ以外（またはくろいてっきゅう所持）に適用（ふゆうは未対応）・テラスタル/急所は未対応",
   none:"なし", min:"無振り", max:"特化", natNeutral:"補正なし",
   weathers:{none:"なし", sun:"晴れ ☀", rain:"雨 🌧", sand:"砂あらし 🌪", snow:"雪 ❄"},
   terrains:{none:"なし", electric:"エレキフィールド", grassy:"グラスフィールド", psychic:"サイコフィールド", misty:"ミストフィールド"},
@@ -354,6 +358,8 @@ ja: {
     "big-root":"吸収量×1.3", "light-clay":"壁8ターン", "heat-rock":"晴れ8ターン", "damp-rock":"雨8ターン",
     "smooth-rock":"砂あらし8ターン", "icy-rock":"雪8ターン", "metronome":"連続使用で強化", "shed-shell":"必ず交代できる"},
   typeBoost:tn=>`${tn}×1.2`, berryResist:tn=>`${tn}弱点半減`, berryChilan:tn=>`${tn}半減`,
+  reflect:"リフレクター", lightScreen:"ひかりのかべ", auroraVeil:"オーロラベール",
+  ruinMark:s=>`災い${s}↓`, screenMark:"壁半減",
 },
 };
 const t = k => (L[lang][k] !== undefined ? L[lang][k] : L.ko[k]);
@@ -434,6 +440,7 @@ function makeMyMon(dex, nature, moves){
           ivs:[31,31,31,31,31,31], evs, moves:(moves||[]).slice(0,4)};
 }
 function makeSlot(i){ return {i, ranks:[0,0,0,0,0], burn:false, mega:null}; }
+const emptyScreens = () => ({my:{reflect:false, light:false, veil:false}, opp:{reflect:false, light:false, veil:false}});
 function initialState(){
   return {
     mode:"double",
@@ -448,6 +455,7 @@ function initialState(){
     oppTeam:[],
     field:{my:[null,null], opp:[null,null]},
     tailwind:{my:false, opp:false},
+    screens:emptyScreens(),
     weather:"none",
     terrain:"none",
   };
@@ -458,10 +466,14 @@ function load(){
     if(s && s.myTeam && s.field){
       if(!s.weather) s.weather = "none";
       if(!s.terrain) s.terrain = "none";
+      if(!s.screens) s.screens = emptyScreens();
       s.myTeam.forEach(m => {
         if(m.ability === undefined) m.ability = (D.pokedex[m.dex].abil || [])[0] || "";
       });
-      s.oppTeam.forEach(o => { if(o.spdTier === undefined) o.spdTier = ""; });
+      s.oppTeam.forEach(o => {
+        if(o.spdTier === undefined) o.spdTier = "";
+        if(o.ability === undefined) o.ability = "";
+      });
       const okItems = new Set(ITEMS);   // items no longer in the championship list -> 없음
       s.myTeam.forEach(m => { if(!okItems.has(m.item)) m.item = "없음"; });
       s.oppTeam.forEach(o => { if(!okItems.has(o.item)) o.item = "없음"; });
@@ -533,8 +545,8 @@ function typeEffFor(moveType, defTypes, defItem){
   return typeEff(moveType, types);
 }
 const GRASSY_HALVED = new Set([89, 222, 523]);   // 지진, 매그니튜드, 땅고르기
-function adjPower(m, atkGrounded, defGrounded, atkItem){
-  let mul = bpItemMul(atkItem, m.cat, m.type);
+function adjPower(m, atkGrounded, defGrounded, atkItem, abilMul){
+  let mul = bpItemMul(atkItem, m.cat, m.type) * (abilMul || 1);
   const t = state.terrain;
   if(t === "electric" && m.type === "Electric" && atkGrounded) mul *= 1.3;
   if(t === "grassy"   && m.type === "Grass"    && atkGrounded) mul *= 1.3;
@@ -554,8 +566,61 @@ function weatherDefMul(cat, defTypes){
   if(state.weather === "snow" && cat === "P" && defTypes.includes("Ice"))  return 1.5;
   return 1;
 }
+// ---- field-wide abilities (auto-applied) & screens ----
+// keys are the canonical Korean ability names stored in state / data.js
+const AB = {fairyAura:"페어리오라", darkAura:"다크오라", auraBreak:"오라브레이크",
+  tablets:"재앙의목간", sword:"재앙의검", vessel:"재앙의그릇", beads:"재앙의구슬", steely:"강철정신"};
+// effective ability of a fielded slot: my side = the picked one; opp side = picked in the
+// panel, or auto when the species has a single candidate (Xerneas, the Ruin quartet, ...)
+function slotAbility(side, s){
+  const team = side === "my" ? state.myTeam : state.oppTeam;
+  const holder = team[s.i];
+  if(!holder) return "";
+  if(s.mega != null) return (D.pokedex[s.mega].abil || [])[0] || "";
+  if(side === "my") return holder.ability || "";
+  const cand = D.pokedex[holder.dex].abil || [];
+  return holder.ability || (cand.length === 1 ? cand[0] : "");
+}
+function fieldAbil(){
+  const out = {my:[], opp:[]};
+  for(const side of ["my","opp"]) for(const {slot:s} of fielded(side)) out[side].push(slotAbility(side, s));
+  out.all = out.my.concat(out.opp);
+  return out;
+}
+// Fairy/Dark Aura ×1.33 on that type for everyone (×0.75 under Aura Break);
+// Steely Spirit ×1.5 on Steel moves per holder on the attacker's side
+function abilityPowerMul(m, atkSide, fa){
+  let mul = 1;
+  const aura = (m.type === "Fairy" && fa.all.includes(AB.fairyAura)) ||
+               (m.type === "Dark"  && fa.all.includes(AB.darkAura));
+  if(aura) mul *= fa.all.includes(AB.auraBreak) ? 3072/4096 : 5448/4096;
+  if(m.type === "Steel") fa[atkSide].forEach(a => { if(a === AB.steely) mul *= 1.5; });
+  return mul;
+}
+// Ruin quartet: ×0.75 on everyone else's stat; holders of the same ability are immune
+function ruinAtkMul(cat, atkAbility, fa){
+  const key = cat === "P" ? AB.tablets : AB.vessel;
+  return fa.all.includes(key) && atkAbility !== key ? 0.75 : 1;
+}
+function ruinDefMul(cat, defAbility, fa){
+  const key = cat === "P" ? AB.sword : AB.beads;
+  return fa.all.includes(key) && defAbility !== key ? 0.75 : 1;
+}
+// Reflect / Light Screen / Aurora Veil on the defending side (one reduction max)
+function screenMul(defSide, cat){
+  const sc = state.screens[defSide];
+  const hit = sc && (sc.veil || (cat === "P" ? sc.reflect : sc.light));
+  return hit ? (state.mode === "double" ? 2732/4096 : 0.5) : 1;
+}
+function abilMarks(raMul, rdMul, scMul, atkIdx, defIdx){
+  let s = "";
+  if(raMul < 1) s += ` <span class="small muted">${t("ruinMark")(SS(atkIdx))}</span>`;
+  if(rdMul < 1) s += ` <span class="small" style="color:var(--warn)">${t("ruinMark")(SS(defIdx))}</span>`;
+  if(scMul < 1) s += ` <span class="small muted">${t("screenMark")}</span>`;
+  return s;
+}
 // returns [min,max] raw damage
-function calcDamage(power, atk, def, {stab=false, eff=1, spread=false, burn=false, lifeOrb=false, expertBelt=false, berry=false, wmod=1}){
+function calcDamage(power, atk, def, {stab=false, eff=1, spread=false, burn=false, lifeOrb=false, expertBelt=false, berry=false, wmod=1, screen=1}){
   if(power <= 0 || eff === 0) return [0,0];
   let base = Math.floor(Math.floor(Math.floor(22 * power * atk / def) / 50)) + 2;
   if(spread) base = pokeRound(base * 0.75);
@@ -565,6 +630,7 @@ function calcDamage(power, atk, def, {stab=false, eff=1, spread=false, burn=fals
     if(stab) d = pokeRound(d * 1.5);
     d = Math.floor(d * eff);
     if(burn) d = Math.floor(d * 0.5);
+    if(screen !== 1) d = pokeRound(d * screen);
     if(expertBelt && eff > 1) d = pokeRound(d * 4915 / 4096);
     if(lifeOrb) d = pokeRound(d * 5324 / 4096);
     if(berry) d = pokeRound(d * 0.5);
@@ -651,14 +717,18 @@ function myMoveDamageHtml(slot, moveId){
   const mon = state.myTeam[slot.i];
   const dex = slot.mega ?? mon.dex;
   const p = D.pokedex[dex];
+  const fa = fieldAbil();
   const atkIdx = m.cat === "P" ? 1 : 3;
-  const atk = effStat(myStat(mon, atkIdx, dex), slot.ranks[atkIdx-1], mon.item, atkIdx, D.pokedex[mon.dex].ko);
+  const raMul = ruinAtkMul(m.cat, slotAbility("my", slot), fa);
+  const atk = pokeRound(effStat(myStat(mon, atkIdx, dex), slot.ranks[atkIdx-1], mon.item, atkIdx, D.pokedex[mon.dex].ko) * raMul);
   const stab = p.types.includes(m.type);
   const targets = fielded("opp");
   if(!targets.length) return `<div class="dmg muted">${t("oppFieldEmpty")}</div>`;
   const spread = state.mode === "double" && m.spread && targets.length > 1;
   const atkG = isGrounded(p.types, mon.item);
   const wm = weatherMod(m.type);
+  const abilMul = abilityPowerMul(m, "my", fa);
+  const scMul = screenMul("opp", m.cat);
   return targets.map(({slot:ts}) => {
     const opp = state.oppTeam[ts.i];
     const tdex = ts.mega ?? opp.dex;
@@ -666,20 +736,21 @@ function myMoveDamageHtml(slot, moveId){
     const e = typeEffFor(m.type, tp.types, opp.item);
     const dId = identOf(opp.item);
     const berry = RESIST_BERRY[dId] === m.type && (e > 1 || dId === "chilan-berry");
-    const power = adjPower(m, atkG, isGrounded(tp.types, opp.item), mon.item);
+    const power = adjPower(m, atkG, isGrounded(tp.types, opp.item), mon.item, abilMul);
     const dmul = weatherDefMul(m.cat, tp.types);
     const defIdx = m.cat === "P" ? 2 : 4;
+    const rdMul = ruinDefMul(m.cat, slotAbility("opp", ts), fa);
     const lines = ["min","max"].map(scen => {
-      const def = Math.floor(effStat(oppStat(tdex, defIdx, scen), ts.ranks[defIdx-1], opp.item, defIdx) * dmul);
+      const def = pokeRound(Math.floor(effStat(oppStat(tdex, defIdx, scen), ts.ranks[defIdx-1], opp.item, defIdx) * dmul) * rdMul);
       const hp = oppStat(tdex, 0, scen);
-      const [lo,hi] = calcDamage(power, atk, def, {stab, eff:e, spread, wmod:wm, berry, burn:slot.burn && m.cat==="P",
+      const [lo,hi] = calcDamage(power, atk, def, {stab, eff:e, spread, wmod:wm, berry, burn:slot.burn && m.cat==="P", screen:scMul,
         lifeOrb:identOf(mon.item)==="life-orb", expertBelt:identOf(mon.item)==="expert-belt"});
       if(e === 0) return null;
       return `${scen === "min" ? t("min") : t("max")} <span class="pct">${pct(lo,hp)}~${pct(hi,hp)}%</span> ${koLabel(pct(lo,hp), pct(hi,hp))}`;
     });
     return `<div class="dmg">→ <span class="tgt">${esc(dexName(tp))}</span> ${effChip(e)}
       ${e === 0 ? `<span class="muted">${t("noEffect")}</span>` : lines.join(` <span class="muted">·</span> `)}
-      ${spread ? `<span class="muted small">${t("spreadNote")}</span>` : ""}${condMarks(wm, power, m.power, dmul, e, berry)}</div>`;
+      ${spread ? `<span class="muted small">${t("spreadNote")}</span>` : ""}${condMarks(wm, power, m.power, dmul, e, berry)}${e === 0 ? "" : abilMarks(raMul, rdMul, scMul, atkIdx, defIdx)}</div>`;
   }).join("");
 }
 // opp fielded mon's potential move -> all my fielded targets
@@ -690,6 +761,7 @@ function oppMoveDamageHtml(slot, moveId){
   const opp = state.oppTeam[slot.i];
   const dex = slot.mega ?? opp.dex;
   const p = D.pokedex[dex];
+  const fa = fieldAbil();
   const stab = p.types.includes(m.type);
   const atkIdx = m.cat === "P" ? 1 : 3;
   const targets = fielded("my");
@@ -697,6 +769,9 @@ function oppMoveDamageHtml(slot, moveId){
   const spread = state.mode === "double" && m.spread && targets.length > 1;
   const atkG = isGrounded(p.types, opp.item);
   const wm = weatherMod(m.type);
+  const raMul = ruinAtkMul(m.cat, slotAbility("opp", slot), fa);
+  const abilMul = abilityPowerMul(m, "opp", fa);
+  const scMul = screenMul("my", m.cat);
   return targets.map(({slot:ms}) => {
     const mine = state.myTeam[ms.i];
     const mdex = ms.mega ?? mine.dex;
@@ -704,20 +779,21 @@ function oppMoveDamageHtml(slot, moveId){
     const e = typeEffFor(m.type, mp.types, mine.item);
     const dId = identOf(mine.item);
     const berry = RESIST_BERRY[dId] === m.type && (e > 1 || dId === "chilan-berry");
-    const power = adjPower(m, atkG, isGrounded(mp.types, mine.item), opp.item);
+    const power = adjPower(m, atkG, isGrounded(mp.types, mine.item), opp.item, abilMul);
     const dmul = weatherDefMul(m.cat, mp.types);
     const defIdx = m.cat === "P" ? 2 : 4;
-    const def = Math.floor(effStat(myStat(mine, defIdx, mdex), ms.ranks[defIdx-1], mine.item, defIdx) * dmul);
+    const rdMul = ruinDefMul(m.cat, slotAbility("my", ms), fa);
+    const def = pokeRound(Math.floor(effStat(myStat(mine, defIdx, mdex), ms.ranks[defIdx-1], mine.item, defIdx) * dmul) * rdMul);
     const hp = myStat(mine, 0, mdex);
     if(e === 0) return `<div class="dmg">→ <span class="tgt">${esc(dexName(mp))}</span> ${effChip(0)} <span class="muted">${t("noEffect")}</span></div>`;
     const parts = ["min","max"].map(scen => {
-      const atk = effStat(oppStat(dex, atkIdx, scen), slot.ranks[atkIdx-1], opp.item, atkIdx, D.pokedex[opp.dex].ko);
-      const [lo,hi] = calcDamage(power, atk, def, {stab, eff:e, spread, wmod:wm, berry, burn:slot.burn && m.cat==="P",
+      const atk = pokeRound(effStat(oppStat(dex, atkIdx, scen), slot.ranks[atkIdx-1], opp.item, atkIdx, D.pokedex[opp.dex].ko) * raMul);
+      const [lo,hi] = calcDamage(power, atk, def, {stab, eff:e, spread, wmod:wm, berry, burn:slot.burn && m.cat==="P", screen:scMul,
         lifeOrb:identOf(opp.item)==="life-orb", expertBelt:identOf(opp.item)==="expert-belt"});
       return `${scen === "min" ? t("min") : t("max")} <span class="pct">${pct(lo,hp)}~${pct(hi,hp)}%</span> ${koLabel(pct(lo,hp), pct(hi,hp))}`;
     });
     return `<div class="dmg">→ <span class="tgt">${esc(dexName(mp))}</span> ${effChip(e)} ${parts.join(` <span class="muted">·</span> `)}
-      ${spread ? `<span class="muted small">${t("spreadNote")}</span>` : ""}${condMarks(wm, power, m.power, dmul, e, berry)}</div>`;
+      ${spread ? `<span class="muted small">${t("spreadNote")}</span>` : ""}${condMarks(wm, power, m.power, dmul, e, berry)}${abilMarks(raMul, rdMul, scMul, atkIdx, defIdx)}</div>`;
   }).join("");
 }
 
@@ -813,7 +889,7 @@ function renderOppSlot(k){
     <div class="head">${sprImg(dex, "lg")}${monName(dex)} ${typeChips(p.types)}
       <span style="flex:1"></span>
       <button class="small" data-action="unfield" data-side="opp" data-k="${k}">${t("removeBtn")}</button></div>
-    <div class="row small muted">${t("abilCand")} ${esc((p.abil || []).map(abilityName).join(" / ") || "?")}</div>
+    <div class="row small muted">${t("abilCand")} ${s.mega != null ? esc((p.abil || []).map(abilityName).join(" / ") || "?") : oppAbilSelect(s.i)}</div>
     <div class="row small muted">${t("itemLbl")}
       <button class="small" data-action="pick-item" data-side="opp" data-i="${s.i}">${itemImg(opp.item)}${esc(itemName(opp.item))} ▾</button>
       ${megaControls("opp", k, opp.dex, s)}
@@ -888,6 +964,17 @@ function benchHtml(side){
   }).join("") + `</span>`;
 }
 // ---------------- render: my team panel ----------------
+// opponent ability: single candidate = shown as fact (and auto-applied for aura/ruin
+// calc); several candidates = dropdown so the confirmed one can be picked
+function oppAbilSelect(oi){
+  const opp = state.oppTeam[oi];
+  const cand = D.pokedex[opp.dex].abil || [];
+  if(!cand.length) return "?";
+  if(cand.length === 1) return esc(abilityName(cand[0]));
+  return `<select data-field="opp-ability" data-oi="${oi}">
+    <option value="">?</option>${cand.map(a =>
+      `<option value="${esc(a)}" ${opp.ability === a ? "selected" : ""}>${esc(abilityName(a))}</option>`).join("")}</select>`;
+}
 function fieldButtons(side, teamIdx){
   if(isFielded(side, teamIdx)) return `<span class="small" style="color:var(--ok)">${t("onField")}</span>`;
   return `<button class="small primary" data-action="bench" data-side="${side}" data-i="${teamIdx}">${t("toField")}</button>`;
@@ -959,7 +1046,7 @@ function renderOppPanel(){
       <div class="head">${sprImg(opp.dex, "sm")}${monName(opp.dex)} ${typeChips(p.types)}
         ${MEGAS_BY_DEX[opp.dex] ? `<span class="small" style="color:var(--warn)" title="${t("megaHint")}">◆</span>` : ""}</div>
       <div class="row small muted">${t("baseStats")} ${b.join("/")}</div>
-      <div class="row small muted">${t("abilCand")} ${esc((p.abil || []).map(abilityName).join(" / ") || "?")}</div>
+      <div class="row small muted">${t("abilCand")} ${oppAbilSelect(idx)}</div>
       <div class="row small muted">${t("itemLbl")}
         <button class="small" data-action="pick-item" data-side="opp" data-i="${idx}">${itemImg(opp.item)}${esc(itemName(opp.item))} ▾</button></div>
       <div class="row"><input style="width:100%" placeholder="${t("notePh")}" value="${esc(opp.note || "")}" data-field="opp-note" data-oi="${idx}"></div>
@@ -982,6 +1069,9 @@ function renderField(){
   const single = state.mode === "single";
   const oppSlots = slotsFor("opp").map(k => renderOppSlot(k)).join("");
   const mySlots  = slotsFor("my").map(k => renderMySlot(k)).join("");
+  const wallBtns = side => ["reflect","light","veil"].map(w =>
+    `<button class="small ${state.screens[side][w] ? "on" : ""}" data-action="screen" data-side="${side}" data-w="${w}">
+      ${t(w === "reflect" ? "reflect" : w === "light" ? "lightScreen" : "auroraVeil")}</button>`).join("");
   const battleBar = `<div class="battlebar"><span class="t">${t("battleState")}</span>
     <label>${t("weatherLbl")} <select data-field="weather">${Object.entries(t("weathers")).map(([k,v]) =>
       `<option value="${k}" ${state.weather === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
@@ -989,11 +1079,11 @@ function renderField(){
       `<option value="${k}" ${state.terrain === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
     <span class="small muted">${t("weatherNote")}</span></div>`;
   document.getElementById("field-col").innerHTML = `
-    <div class="fieldside opp"><div class="sidehead"><span class="t">${t("oppField")}</span>${benchHtml("opp")}</div>
+    <div class="fieldside opp"><div class="sidehead"><span class="t">${t("oppField")}</span>${wallBtns("opp")}${benchHtml("opp")}</div>
       <div class="slots ${single ? "single" : ""}">${oppSlots}</div></div>
     ${battleBar}
     ${renderSpeed()}
-    <div class="fieldside my"><div class="sidehead"><span class="t">${t("myField")}</span>${benchHtml("my")}</div>
+    <div class="fieldside my"><div class="sidehead"><span class="t">${t("myField")}</span>${wallBtns("my")}${benchHtml("my")}</div>
       <div class="slots ${single ? "single" : ""}">${mySlots}</div></div>`;
 }
 
@@ -1153,7 +1243,7 @@ function onPick(ctx, v){
     mon.moves[+b] = v;
     mon.moves = mon.moves.filter(x => x != null).slice(0,4);
   }
-  else if(kind === "opp-add"){ if(state.oppTeam.length < 6) state.oppTeam.push({dex:v, item:"없음", moves:[], note:"", spdTier:""}); }
+  else if(kind === "opp-add"){ if(state.oppTeam.length < 6) state.oppTeam.push({dex:v, item:"없음", ability:"", moves:[], note:"", spdTier:""}); }
   commit();
 }
 
@@ -1215,6 +1305,7 @@ document.addEventListener("click", e => {
       if(state.mode === "single"){ state.field.my[1] = null; state.field.opp[1] = null; }
       commit(); break;
     case "tw": state.tailwind[d.side] = !state.tailwind[d.side]; commit(); break;
+    case "screen": state.screens[d.side][d.w] = !state.screens[d.side][d.w]; commit(); break;
     case "bench": {
       const side = d.side, i = +d.i;
       if(isFielded(side, i)) break;
@@ -1255,6 +1346,7 @@ document.addEventListener("click", e => {
         state.oppTeam = [];
         state.field.opp = [null, null];
         state.tailwind = {my:false, opp:false};
+        state.screens = emptyScreens();
         state.weather = "none";
         state.terrain = "none";
         state.field.my.forEach(s => { if(s){ s.ranks = [0,0,0,0,0]; s.burn = false; } });
@@ -1363,6 +1455,7 @@ document.addEventListener("change", e => {
     case "ev":     state.myTeam[+d.i].evs[+d.s] = Math.max(0, Math.min(252, +el.value || 0)); break;
     case "burn":   { const s = state.field[d.side][+d.k]; if(s) s.burn = el.checked; break; }
     case "opp-note": state.oppTeam[+d.oi].note = el.value; break;
+    case "opp-ability": state.oppTeam[+d.oi].ability = el.value; break;
     case "opp-spdtier": state.oppTeam[+d.oi].spdTier = el.value; break;
     case "weather": state.weather = el.value; break;
     case "terrain": state.terrain = el.value; break;

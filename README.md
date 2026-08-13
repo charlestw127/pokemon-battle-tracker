@@ -61,7 +61,9 @@ opponent scouting, in **Korean, English, or Japanese**.
 ### 2. Scout the opponent (right panel)
 
 - **Add opponent Pokémon** as they are revealed (name search, any language) — up to 6.
-- Each opponent card shows **base stats**, **possible abilities**, and an **item** picker.
+- Each opponent card shows **base stats**, an **ability** picker, and an **item** picker.
+  Species with a single possible ability (Xerneas, the Ruin quartet, …) are treated as
+  confirmed automatically; for everything else, pick the ability once it's revealed.
 - **Expected moves:** open *Pick moves* to browse everything that species can learn (sorted by
   power) and tag the moves you expect. Each move has a **? / ✔ toggle**:
   - `?` *Unseen* — your guess, rendered dimmed
@@ -80,6 +82,8 @@ opponent scouting, in **Korean, English, or Japanese**.
   - **Reset ranks** for when a Pokémon switches out
 - **Battle conditions bar:** weather (Sun / Rain / Sandstorm / Snow) and terrain (Electric /
   Grassy / Psychic / Misty), plus per-side **Tailwind** toggles in the speed panel.
+- **Walls:** per-side **Reflect / Light Screen / Aurora Veil** toggles in each field header —
+  ×0.5 damage in singles, ×2/3 in doubles, applied to the correct move category.
 
 ### 4. Read the numbers
 
@@ -94,11 +98,18 @@ under each *expected* opponent move, damage vs. your fielded Pokémon:
   **KO labels** (*Guaranteed OHKO*, *Possible 2HKO*, …).
 - The calculation includes: STAB, type effectiveness, spread-move 0.75 in doubles, weather
   (×1.5/×0.5), terrain boosts and halvings (including Grassy Terrain halving Earthquake and
-  Misty Terrain halving Dragon moves for grounded targets), burn, sandstorm Rock SpD ×1.5,
-  snow Ice Def ×1.5, and item modifiers on **both sides** — Life Orb, Expert Belt, Muscle
-  Band, Wise Glasses, type-boost items (×1.2), super-effective-halving berries (and Chilan
-  Berry), Light Ball, and Iron Ball's grounding effect.
-- Badges (`Weather↑`, `Power↑`, `Bulk↑`, `Berry halved`) flag when conditions changed a number.
+  Misty Terrain halving Dragon moves for grounded targets), burn, walls, sandstorm Rock SpD
+  ×1.5, snow Ice Def ×1.5, and item modifiers on **both sides** — Life Orb, Expert Belt,
+  Muscle Band, Wise Glasses, type-boost items (×1.2), super-effective-halving berries (and
+  Chilan Berry), Light Ball, and Iron Ball's grounding effect.
+- **Field-wide abilities are applied automatically** for anyone on the field:
+  - **Fairy Aura / Dark Aura** — ×1.33 on Fairy/Dark moves from *any* Pokémon, flipped to
+    ×0.75 by **Aura Break**
+  - **Tablets of Ruin / Sword of Ruin / Vessel of Ruin / Beads of Ruin** — ×0.75 to the
+    Atk / Def / SpA / SpD of every other Pokémon, with holders of the same ability immune
+  - **Steely Spirit** — ×1.5 on Steel moves from the holder's side
+- Badges (`Weather↑`, `Power↑`, `Ruin SpD↓`, `Screened`, `Berry halved`, …) flag exactly
+  which conditions changed a number.
 
 **Speed Check panel.** Everyone on the field, sorted fastest-first:
 
@@ -121,16 +132,17 @@ under each *expected* opponent move, damage vs. your fielded Pokémon:
 | Languages | Korean / English / Japanese UI; official localized names for Pokémon, forms, moves, abilities, items, natures, types; cross-language search |
 | Formats | Singles & Doubles, Lv. 50, Mega Evolution & Primal Reversion, fixed championship item list |
 | My team | 6 slots, nature/ability/item editor, IV/EV editor with 508 cap check, learnset-limited move picker, Lv. 50 stats, bulk index |
-| Opponent | 6 slots, 0 EV vs 252+ stat ranges, ability candidates, item picker, expected moves from real learnsets, seen/unseen tracking, notes, speed-tier pinning |
-| Battle | Per-slot stat ranks, burn, in-field Mega toggle, weather, terrain, Tailwind per side, bench quick-swap |
-| Damage | Two-scenario % ranges, KO labels, STAB/type/spread/weather/terrain/burn/item modifiers, immunity handling (incl. Iron Ball vs. Ground) |
+| Opponent | 6 slots, 0 EV vs 252+ stat ranges, ability picker (auto for single-ability species), item picker, expected moves from real learnsets, seen/unseen tracking, notes, speed-tier pinning |
+| Battle | Per-slot stat ranks, burn, in-field Mega toggle, weather, terrain, Tailwind per side, Reflect/Light Screen/Aurora Veil per side, bench quick-swap |
+| Damage | Two-scenario % ranges, KO labels, STAB/type/spread/weather/terrain/burn/wall/item modifiers, auto-applied Auras & Ruin abilities & Steely Spirit, immunity handling (incl. Iron Ball vs. Ground) |
 | Persistence | Auto-save (localStorage), JSON team export/import, one-click opponent reset |
 
 ### Known simplifications
 
-Abilities are tracked for reference but **not** applied to damage (no Levitate, Intimidate,
-Multiscale…). Critical hits, accuracy, and multi-hit distributions aren't modeled. Opponent
-IVs are assumed to be 31.
+Only field-wide abilities (Fairy/Dark Aura, Aura Break, the four Ruin abilities, Steely
+Spirit) affect the damage math — other abilities (Levitate, Intimidate, Multiscale…) are
+tracked as notes only. Infiltrator's screen bypass, critical hits, accuracy, and multi-hit
+distributions aren't modeled. Opponent IVs are assumed to be 31.
 
 ## Rebuilding the data (`data.js`)
 
