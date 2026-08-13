@@ -5,6 +5,10 @@ Open `battle_tracker.html` in a browser — no server, no install — and track 
 battle in real time: live damage ranges, speed tiers, stat ranks, weather, terrain, and
 opponent scouting, in **Korean, English, or Japanese**.
 
+**▶ Use it online: <https://charlestw127.github.io/pokemon-battle-tracker/>** — or download
+and double-click. (The online and local versions each keep their own auto-saved state; move
+teams between them with Save/Load Team or a Showdown paste.)
+
 ![Battle view](docs/screenshot-battle.png)
 
 ## Highlights
@@ -47,7 +51,11 @@ opponent scouting, in **Korean, English, or Japanese**.
 ![Team view](docs/screenshot-team.png)
 
 - **Add a Pokémon** by typing its name (in Korean, English, or Japanese) into the search box —
-  up to 6 team members.
+  up to 6 team members. Or press **📋 Showdown paste** and paste a team straight from
+  [Pokémon Showdown](https://play.pokemonshowdown.com)'s teambuilder Import/Export text —
+  species (including forms like `Rotom-Wash` or `Urshifu-Rapid-Strike`), items, abilities,
+  natures, EVs/IVs, and moves are all picked up; anything outside the championship item list
+  is skipped with a warning.
 - Click **Edit** on a card to set:
   - **Nature** — shown with its stat effect, e.g. *Modest (SpA↑ Atk↓)*
   - **Ability** — chosen from the species' real ability list
@@ -60,7 +68,9 @@ opponent scouting, in **Korean, English, or Japanese**.
 
 ### 2. Scout the opponent (right panel)
 
-- **Add opponent Pokémon** as they are revealed (name search, any language) — up to 6.
+- **Add opponent Pokémon** as they are revealed (name search, any language) — up to 6. With
+  open team sheets, **📋 Showdown paste** fills the entire opponent team in one go — their
+  items, abilities, and moves arrive pre-tagged as expected (unseen) moves.
 - Each opponent card shows **base stats**, an **ability** picker, and an **item** picker.
   Species with a single possible ability (Xerneas, the Ruin quartet, …) are treated as
   confirmed automatically; for everything else, pick the ability once it's revealed.
@@ -135,7 +145,7 @@ under each *expected* opponent move, damage vs. your fielded Pokémon:
 | Opponent | 6 slots, 0 EV vs 252+ stat ranges, ability picker (auto for single-ability species), item picker, expected moves from real learnsets, seen/unseen tracking, notes, speed-tier pinning |
 | Battle | Per-slot stat ranks, burn, in-field Mega toggle, weather, terrain, Tailwind per side, Reflect/Light Screen/Aurora Veil per side, bench quick-swap |
 | Damage | Two-scenario % ranges, KO labels, STAB/type/spread/weather/terrain/burn/wall/item modifiers, auto-applied Auras & Ruin abilities & Steely Spirit, immunity handling (incl. Iron Ball vs. Ground) |
-| Persistence | Auto-save (localStorage), JSON team export/import, one-click opponent reset |
+| Persistence | Auto-save (localStorage), JSON team export/import, Showdown paste import for both teams, one-click opponent reset |
 
 ### Known simplifications
 
@@ -171,6 +181,7 @@ prints warnings for anything unresolved.
 | File | Role |
 |---|---|
 | `battle_tracker.html` | The entire app — markup, styles, logic, i18n strings |
+| `index.html` | Redirect stub so GitHub Pages serves the app at the repo root |
 | `data.js` | Generated game database (Pokémon, moves, items, type chart, translations) |
 | `build_data.py` | Regenerates `data.js` from public data sources |
 | `pokedex.json` | Base stats + KO/EN names input used by the build script |

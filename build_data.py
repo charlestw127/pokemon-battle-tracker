@@ -184,16 +184,29 @@ def build_sprite_ids(pokedex: list):
         if p["form"] == "default":
             chosen = base_e
         else:
+            # accept a Showdown forme only if ALL its tokens appear in our form name;
+            # partial overlap ("Single Strike" vs "Rapid-Strike" sharing "strike") must
+            # fall back to the base entry, not pick the wrong forme. Exception: pokemondb
+            # sometimes omits the region word ("Combat Breed" for Paldean Tauros), so a
+            # forme whose only extra tokens are region names still matches, second-choice.
+            REGION_TOKENS = {"alola", "galar", "hisui", "paldea"}
             ours = form_tokens(p["form"], p["name_en"])
-            chosen, best = base_e, 0.0
+            chosen, best = base_e, (0, 0)
             for e in cands:
                 f = e.get("forme")
                 if not f:
                     continue
                 ft = form_tokens(f, "")
-                score = len(ours & ft) - 0.5 * len(ft - ours) - 0.25 * len(ours - ft)
-                if score > best:
-                    chosen, best = e, score
+                if not ft:
+                    continue
+                if ft <= ours:
+                    rank = (2, len(ft))
+                elif (ft - REGION_TOKENS) and (ft - REGION_TOKENS) <= ours and not (REGION_TOKENS & ours):
+                    rank = (1, len(ft))
+                else:
+                    continue
+                if rank > best:
+                    chosen, best = e, rank
         base = chosen.get("baseSpecies", chosen["name"])
         f = chosen.get("forme", "")
         sids.append(toid(base) + ("-" + toid(f) if f else ""))

@@ -125,6 +125,8 @@
   .pmv:hover{border-color:#4a5665}
   .pmv.sel{background:#1e4d33; border-color:var(--ok)}
   .pmv .pw{margin-left:auto; color:var(--dim); font-size:11px; flex:none}
+  #paste-ta{width:100%; height:280px; font:12px/1.4 Consolas,monospace; color:var(--text); background:#12161c; border:1px solid var(--line); border-radius:8px; padding:8px; resize:vertical}
+  #paste-ta:focus{outline:none; border-color:var(--my)}
   .battlebar{display:flex; align-items:center; gap:14px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:8px 12px}
   .battlebar .t{font-weight:700; font-size:13px}
   .battlebar label{color:var(--dim); font-size:12px; display:flex; align-items:center; gap:5px}
@@ -250,6 +252,10 @@ ko: {
   typeBoost:tn=>`${tn} ×1.2`, berryResist:tn=>`${tn} 약점 반감`, berryChilan:tn=>`${tn} 반감`,
   reflect:"리플렉터", lightScreen:"빛의장막", auroraVeil:"오로라베일",
   ruinMark:s=>`재앙 ${s}↓`, screenMark:"벽 반감",
+  pasteBtn:"📋 Showdown 붙여넣기", pasteTitleMy:"내 팀 가져오기 — Showdown 형식", pasteTitleOpp:"상대 팀 가져오기 — Showdown 형식",
+  pasteHint:"포켓몬 쇼다운 팀빌더의 「Import/Export」 텍스트를 붙여넣으세요. 현재 팀을 대체합니다.",
+  pasteGo:"가져오기", pasteNone:"가져올 포켓몬을 찾지 못했습니다. Showdown Export 형식인지 확인해주세요.",
+  pasteDone:n=>`${n}마리 가져옴 ✓`, pasteWarn:"인식하지 못한 항목 (건너뜀):",
 },
 en: {
   title:"Pokémon Battle Tracker", tabBattle:"⚔ Battle", tabTeam:"My Team", single:"Singles", double:"Doubles",
@@ -305,6 +311,10 @@ en: {
   typeBoost:tn=>`${tn} ×1.2`, berryResist:tn=>`Halves SE ${tn}`, berryChilan:tn=>`Halves ${tn}`,
   reflect:"Reflect", lightScreen:"Light Screen", auroraVeil:"Aurora Veil",
   ruinMark:s=>`Ruin ${s}↓`, screenMark:"Screened",
+  pasteBtn:"📋 Showdown paste", pasteTitleMy:"Import my team — Showdown format", pasteTitleOpp:"Import opponent team — Showdown format",
+  pasteHint:"Paste the Import/Export text from Pokémon Showdown's teambuilder. Replaces the current team.",
+  pasteGo:"Import", pasteNone:"No Pokémon found. Is this Showdown Export text?",
+  pasteDone:n=>`Imported ${n} Pokémon ✓`, pasteWarn:"Not recognized (skipped):",
 },
 ja: {
   title:"ポケモンバトルトラッカー", tabBattle:"⚔ バトル", tabTeam:"チーム管理", single:"シングル", double:"ダブル",
@@ -360,6 +370,10 @@ ja: {
   typeBoost:tn=>`${tn}×1.2`, berryResist:tn=>`${tn}弱点半減`, berryChilan:tn=>`${tn}半減`,
   reflect:"リフレクター", lightScreen:"ひかりのかべ", auroraVeil:"オーロラベール",
   ruinMark:s=>`災い${s}↓`, screenMark:"壁半減",
+  pasteBtn:"📋 Showdownペースト", pasteTitleMy:"自分のチームを取り込む — Showdown形式", pasteTitleOpp:"相手のチームを取り込む — Showdown形式",
+  pasteHint:"ポケモンショーダウンのチームビルダーの Import/Export テキストを貼り付けてください。現在のチームを置き換えます。",
+  pasteGo:"取り込む", pasteNone:"ポケモンが見つかりません。Showdown Export形式か確認してください。",
+  pasteDone:n=>`${n}匹取り込みました ✓`, pasteWarn:"認識できなかった項目（スキップ）:",
 },
 };
 const t = k => (L[lang][k] !== undefined ? L[lang][k] : L.ko[k]);
@@ -487,7 +501,7 @@ let state = load() || initialState();
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 function commit(){ save(); render(); }
 
-let ui = {editMy:null, movePicker:null, itemPicker:null, view:"battle"};   // transient UI state
+let ui = {editMy:null, movePicker:null, itemPicker:null, pasteImport:null, view:"battle"};   // transient UI state
 
 // ---------------- stats & damage ----------------
 const rankMul = r => r >= 0 ? (2+r)/2 : 2/(2-r);
@@ -1026,7 +1040,9 @@ function renderMyPanel(){
     ? `<div class="card" style="min-width:250px"><div class="row"><span class="ac-wrap"><input class="ac-input" data-kind="dex" data-ctx="my-add" placeholder="${t("addPokemon")}" style="width:230px"><div class="ac-list"></div></span></div></div>`
     : "";
   document.getElementById("my-panel").innerHTML =
-    `<h2>${t("myTeamTitle")} <span class="count">${state.myTeam.length}/6 · ${t("myTeamSub")}</span></h2><div class="teamrow">${cards}${addBox}</div>`;
+    `<h2>${t("myTeamTitle")} <span class="count">${state.myTeam.length}/6 · ${t("myTeamSub")}</span>
+      <button class="small" data-action="paste" data-side="my" style="margin-left:auto">${t("pasteBtn")}</button></h2>
+    <div class="teamrow">${cards}${addBox}</div>`;
 }
 
 // ---------------- render: opp team panel ----------------
@@ -1061,7 +1077,8 @@ function renderOppPanel(){
     ? `<div class="row"><span class="ac-wrap"><input class="ac-input" data-kind="dex" data-ctx="opp-add" placeholder="${t("addOpp")}" style="width:100%; min-width:240px"><div class="ac-list"></div></span></div>`
     : "";
   document.getElementById("opp-panel").innerHTML =
-    `<h2>${t("oppTeamTitle")} <span class="count">${state.oppTeam.length}/6</span></h2>${cards}${addBox}`;
+    `<h2>${t("oppTeamTitle")} <span class="count">${state.oppTeam.length}/6</span>
+      <button class="small" data-action="paste" data-side="opp" style="margin-left:auto">${t("pasteBtn")}</button></h2>${cards}${addBox}`;
 }
 
 // ---------------- render: field column ----------------
@@ -1122,8 +1139,23 @@ function renderItemPicker(root){
     });
   }
 }
+function renderPasteModal(root){
+  root.innerHTML = `<div id="modal-bg"><div class="picker" style="width:min(560px,94vw)">
+    <div class="phead"><span class="t">${ui.pasteImport === "my" ? t("pasteTitleMy") : t("pasteTitleOpp")}</span>
+      <span style="flex:1"></span>
+      <button data-action="close-picker">${t("close")}</button></div>
+    <div style="padding:10px 14px; display:flex; flex-direction:column; gap:8px">
+      <div class="small muted">${t("pasteHint")}</div>
+      <textarea id="paste-ta" spellcheck="false" placeholder="Garchomp @ Focus Sash&#10;Ability: Rough Skin&#10;EVs: 4 HP / 252 Atk / 252 Spe&#10;Jolly Nature&#10;- Earthquake&#10;- Dragon Claw&#10;..."></textarea>
+      <div><button class="primary" data-action="paste-go">${t("pasteGo")}</button></div>
+    </div>
+  </div></div>`;
+  const ta = root.querySelector && root.querySelector("#paste-ta");
+  if(ta) ta.focus();
+}
 function renderModal(){
   const root = document.getElementById("modal-root");
+  if(ui.pasteImport != null){ renderPasteModal(root); return; }
   if(ui.itemPicker != null){ renderItemPicker(root); return; }
   if(ui.movePicker == null){ root.innerHTML = ""; return; }
   const opp = state.oppTeam[ui.movePicker];
@@ -1283,7 +1315,7 @@ document.addEventListener("click", e => {
     if(cnt) cnt.textContent = opp.moves.length;
     return;
   }
-  if(e.target.id === "modal-bg"){ ui.movePicker = null; ui.itemPicker = null; render(); return; }
+  if(e.target.id === "modal-bg"){ ui.movePicker = null; ui.itemPicker = null; ui.pasteImport = null; render(); return; }
   const btn = e.target.closest("[data-action]");
   if(!btn) return;
   const d = btn.dataset;
@@ -1299,7 +1331,13 @@ document.addEventListener("click", e => {
     case "view": ui.view = d.view; render(); break;
     case "pick-moves": ui.movePicker = +d.oi; render(); break;
     case "pick-item": ui.itemPicker = {side:d.side, idx:+d.i}; render(); break;
-    case "close-picker": ui.movePicker = null; ui.itemPicker = null; render(); break;
+    case "paste": ui.pasteImport = d.side; render(); break;
+    case "paste-go": {
+      const ta = document.getElementById("paste-ta");
+      if(ta && ui.pasteImport) applyImport(ui.pasteImport, ta.value);
+      break;
+    }
+    case "close-picker": ui.movePicker = null; ui.itemPicker = null; ui.pasteImport = null; render(); break;
     case "mode":
       state.mode = d.mode;
       if(state.mode === "single"){ state.field.my[1] = null; state.field.opp[1] = null; }
@@ -1422,6 +1460,125 @@ function importMyTeam(obj){
     commit();
     toast(t("teamLoaded")(team.length));
   } else alert(t("teamReadFail"));
+}
+// ---- Showdown teambuilder paste import (my team or opponent team) ----
+// Species are matched via the Showdown id already stored as each entry's sprite id,
+// so "Rotom-Wash", "Urshifu-Rapid-Strike", "Nidoran-F" etc. resolve exactly.
+const IMPORT_STAT = {hp:0, atk:1, def:2, spa:3, spd:4, spe:5};
+let IMPORT_MAPS = null;
+function importMaps(){
+  if(IMPORT_MAPS) return IMPORT_MAPS;
+  const flat = s => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const dex = {};
+  D.pokedex.forEach((p, i) => {
+    const key = flat(p.sid || "");
+    if(!key || dex[key] !== undefined) return;
+    if(IS_MEGA_FORM(p)){   // a pasted mega maps to its base form (mega is an in-field toggle)
+      const b = D.pokedex.findIndex(q => q.en === p.en && q.form === "default");
+      if(b >= 0) dex[key] = b;
+      return;
+    }
+    dex[key] = i;
+  });
+  const moves = {};
+  D.moves.forEach(m => { const k = flat(m.en); if(moves[k] === undefined) moves[k] = m.id; });
+  const items = {};
+  D.items.forEach(it => items[flat(it.en)] = it.ko);
+  const abils = {};
+  for(const [ko, v] of Object.entries(D.abilNames)) abils[flat(v.en)] = ko;
+  return IMPORT_MAPS = {flat, dex, moves, items, abils};
+}
+function parseSpread(s, dflt){
+  const arr = [dflt, dflt, dflt, dflt, dflt, dflt];
+  s.split("/").forEach(part => {
+    const m = part.trim().match(/^(\d+)\s*([A-Za-z]+)$/);
+    const idx = m && IMPORT_STAT[m[2].toLowerCase()];
+    if(idx !== undefined && idx !== null) arr[idx] = +m[1];
+  });
+  return arr;
+}
+function parseShowdown(text){
+  const blocks = text.replace(/\r/g, "").split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+  const out = [];
+  for(const block of blocks){
+    const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
+    if(!lines.length) continue;
+    let head = lines[0], item = "";
+    const at = head.split(/\s@\s/);
+    if(at.length > 1){ item = at.slice(1).join(" @ ").trim(); head = at[0].trim(); }
+    head = head.replace(/\s*\((M|F)\)\s*$/i, "").trim();
+    const par = head.match(/\(([^()]+)\)\s*$/);   // nickname (Species)
+    const mon = {species: par ? par[1].trim() : head, item, ability:"", nature:"", ivs:null, evs:null, moves:[]};
+    for(const ln of lines.slice(1)){
+      let mm;
+      if((mm = ln.match(/^Ability:\s*(.+)$/i))) mon.ability = mm[1].trim();
+      else if((mm = ln.match(/^EVs:\s*(.+)$/i))) mon.evs = parseSpread(mm[1], 0);
+      else if((mm = ln.match(/^IVs:\s*(.+)$/i))) mon.ivs = parseSpread(mm[1], 31);
+      else if((mm = ln.match(/^(\w+)\s+Nature\b/i))) mon.nature = mm[1].trim();
+      else if((mm = ln.match(/^-\s*(.+)$/))) mon.moves.push(mm[1].trim());
+      // Level / Shiny / Tera Type / Happiness / Gigantamax lines are ignored
+    }
+    if(mon.species) out.push(mon);
+  }
+  return out;
+}
+function applyImport(side, text){
+  const M = importMaps();
+  const parsed = parseShowdown(text || "");
+  const warns = [], made = [];
+  for(const pm of parsed.slice(0, 6)){
+    let key = M.flat(pm.species);
+    let di = M.dex[key];
+    if(di === undefined) di = M.dex[key.replace(/mega[xy]?$|primal$/, "")];
+    if(di === undefined){ warns.push(pm.species); continue; }
+    const mids = [];
+    for(const mv of pm.moves.slice(0, 4)){
+      const k = M.flat(mv);
+      const id = M.moves[k] !== undefined ? M.moves[k] : (k.startsWith("hiddenpower") ? M.moves["hiddenpower"] : undefined);
+      if(id === undefined){ warns.push(mv); continue; }
+      mids.push(id);
+    }
+    let itemKo = "없음";
+    if(pm.item){
+      itemKo = M.items[M.flat(pm.item)] || "";
+      if(!itemKo){ warns.push(pm.item); itemKo = "없음"; }   // not in the championship list
+    }
+    const cand = D.pokedex[di].abil || [];
+    let abil = "";
+    if(pm.ability){
+      abil = M.abils[M.flat(pm.ability)] || "";
+      if(!abil) warns.push(pm.ability);
+    }
+    let nature = pm.nature ? pm.nature[0].toUpperCase() + pm.nature.slice(1).toLowerCase() : "";
+    if(!D.natures[nature]) nature = "Serious";
+    if(side === "my"){
+      const mon = makeMyMon(di, nature, mids);
+      mon.item = itemKo;
+      mon.evs = pm.evs || [0,0,0,0,0,0];
+      if(pm.ivs) mon.ivs = pm.ivs;
+      if(abil) mon.ability = abil;
+      made.push(mon);
+    } else {
+      made.push({dex:di, item:itemKo, ability:cand.includes(abil) ? abil : "",
+                 moves:mids.map(id => ({id, seen:false})), note:"", spdTier:""});
+    }
+  }
+  if(!made.length){
+    alert(t("pasteNone"));
+    return;
+  }
+  if(side === "my"){
+    state.myTeam = made;
+    state.field.my = [null, null];
+    ui.editMy = null;
+  } else {
+    state.oppTeam = made;
+    state.field.opp = [null, null];
+  }
+  ui.pasteImport = null;
+  commit();
+  toast(t("pasteDone")(made.length));
+  if(warns.length) alert(t("pasteWarn") + "\n" + [...new Set(warns)].join("\n"));
 }
 document.getElementById("team-file").addEventListener("change", e => {
   const f = e.target.files[0]; if(!f) return;
